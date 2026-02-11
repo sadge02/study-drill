@@ -69,7 +69,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '878968057195',
     projectId: 'studydrill-89742',
     storageBucket: 'studydrill-89742.firebasestorage.app',
-    iosClientId: '878968057195-4necagc5rii6uaqf7olhikaucejki0pn.apps.googleusercontent.com',
+    iosClientId:
+        '878968057195-4necagc5rii6uaqf7olhikaucejki0pn.apps.googleusercontent.com',
     iosBundleId: 'com.example.studyDrill',
   );
 }
