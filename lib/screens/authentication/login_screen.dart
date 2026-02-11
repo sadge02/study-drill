@@ -55,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
           showTopSnackBar(
             Overlay.of(context),
             displayDuration: const Duration(
-              seconds: GeneralConstants.notificationDuration,
+              milliseconds: GeneralConstants.notificationDuration,
             ),
             snackBarPosition: SnackBarPosition.bottom,
             const CustomSnackBar.success(message: 'Login successful.'),

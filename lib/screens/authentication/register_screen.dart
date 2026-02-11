@@ -59,7 +59,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           showTopSnackBar(
             Overlay.of(context),
             displayDuration: const Duration(
-              seconds: GeneralConstants.notificationDuration,
+              milliseconds: GeneralConstants.notificationDuration,
             ),
             snackBarPosition: SnackBarPosition.bottom,
             const CustomSnackBar.success(message: 'Registration successful.'),

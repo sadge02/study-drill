@@ -7,8 +7,6 @@ class GeneralConstants {
 
   static const Color backgroundColor = Colors.white;
 
-
-
   static const int notificationDuration = 3000;
   static const int transitionDuration = 750;
   static const double notificationElevation = 0;
@@ -19,6 +17,4 @@ class GeneralConstants {
   static const double mediumCircularRadius = 15;
   static const double mediumFontSize = 18;
   static const double mediumPadding = 18;
-
-
 }

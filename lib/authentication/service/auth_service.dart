@@ -1,24 +1,28 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide User;
+
+import '../../models/user/user_model.dart';
 
 class AuthService {
-  final FirebaseAuth _authInstance = FirebaseAuth.instance;
-  final FirebaseFirestore _firestoreInstance = FirebaseFirestore.instance;
+  final FirebaseAuth _authentication = FirebaseAuth.instance;
+  final FirebaseFirestore _database = FirebaseFirestore.instance;
 
   Future<bool> isUsernameTaken(String username) async {
-    final result = await _firestoreInstance
-        .collection('users')
-        .where('username', isEqualTo: username)
-        .get();
-    return result.docs.isNotEmpty;
+    final doc = await _database.collection('usernames').doc(username).get();
+    return doc.exists;
   }
 
   Future<bool> isEmailTaken(String email) async {
-    final result = await _firestoreInstance
-        .collection('users')
-        .where('email', isEqualTo: email)
-        .get();
-    return result.docs.isNotEmpty;
+    try {
+      final result = await _database
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+      return result.docs.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<String?> registerUser({
@@ -33,33 +37,52 @@ class AuthService {
       }
 
       if (await isEmailTaken(email)) {
-        return 'This email is already registered. Try logging in!';
+        return 'This email is already registered. Try logging in.';
       }
 
-      final UserCredential cred = await _authInstance
+      final UserCredential credentials = await _authentication
           .createUserWithEmailAndPassword(email: email, password: password);
 
-      await cred.user?.updatePhotoURL(
-        profilePicUrl ??
-            'https://ui-avatars.com/api/?name=$username&background=6096B4&color=fff',
+      final String id = credentials.user!.uid;
+      final String profilePic =
+          profilePicUrl ??
+          'https://ui-avatars.com/api/?name=$username&background=6096B4&color=fff';
+
+      await credentials.user?.updateDisplayName(username);
+      await credentials.user?.updatePhotoURL(profilePic);
+
+      final UserModel user = UserModel(
+        id: id,
+        email: email,
+        username: username,
+        summary: '',
+        profilePic: profilePic,
+        createdAt: DateTime.now(),
+        groupIds: [],
+        friendIds: [],
+        statistics: UserTests(userTests: {}),
+
+        privacySettings: UserPrivacySettings(
+          email: UserVisibility.private,
+          statistics: UserVisibility.public,
+          groups: UserVisibility.public,
+          tests: UserVisibility.public,
+        ),
       );
 
-      await _firestoreInstance.collection('users').doc(cred.user!.uid).set({
-        'uid': cred.user!.uid,
-        'username': username,
-        'email': email,
-        'profilePic':
-            profilePicUrl ??
-            'https://ui-avatars.com/api/?name=$username&background=6096B4&color=fff',
-        'createdAt': FieldValue.serverTimestamp(),
-        'groupIds': <String>[],
-        'testStats': <String, dynamic>{},
-      });
+      final WriteBatch batch = _database.batch();
+
+      batch.set(_database.collection('users').doc(id), user.toJson());
+
+      batch.set(_database.collection('usernames').doc(username), {'uid': id});
+
+      await batch.commit();
 
       return null;
     } on FirebaseAuthException catch (exception) {
       return exception.message;
     } catch (_) {
+      //print("DEBUG: Registration Error: $e");
       return 'An unknown error occurred.';
     }
   }
@@ -69,7 +92,7 @@ class AuthService {
     required String password,
   }) async {
     try {
-      await _authInstance.signInWithEmailAndPassword(
+      await _authentication.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -80,6 +103,6 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    await _authInstance.signOut();
+    await _authentication.signOut();
   }
 }
