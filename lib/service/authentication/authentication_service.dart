@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide User;
+import 'package:study_drill/utils/validators/authentication/authentication_validator.dart';
 
-import '../../models/user/user_model.dart';
+import '../../../models/user/user_model.dart';
 
-class AuthService {
+class AuthenticationService {
   final FirebaseAuth _authentication = FirebaseAuth.instance;
   final FirebaseFirestore _database = FirebaseFirestore.instance;
 
@@ -32,6 +33,21 @@ class AuthService {
     String? profilePicUrl,
   }) async {
     try {
+      final userError = AuthenticationValidator.validateUsername(username);
+      if (userError != null) {
+        return userError;
+      }
+
+      final emailError = AuthenticationValidator.validateEmail(email);
+      if (emailError != null) {
+        return emailError;
+      }
+
+      final passwordError = AuthenticationValidator.validatePassword(password);
+      if (passwordError != null) {
+        return passwordError;
+      }
+
       if (await isUsernameTaken(username)) {
         return 'Username is already taken. Please choose another one.';
       }
@@ -82,7 +98,6 @@ class AuthService {
     } on FirebaseAuthException catch (exception) {
       return exception.message;
     } catch (_) {
-      //print("DEBUG: Registration Error: $e");
       return 'An unknown error occurred.';
     }
   }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:study_drill/utils/constants/authentication/utils/authentication_validator_constants.dart';
 import 'package:study_drill/utils/constants/general_constants.dart';
 import 'package:study_drill/utils/utils.dart';
 
-import '../../utils/constants/authentication/authentication_widget_constants.dart';
+import '../../utils/constants/authentication/widget/authentication_widget_constants.dart';
 
 class AuthenticationInputField extends StatelessWidget {
   const AuthenticationInputField({
@@ -87,8 +88,9 @@ class AuthenticationInputField extends StatelessWidget {
           return 'Invalid email address';
         }
         if (isPassword &&
-            value!.length < AuthenticationWidgetConstants.minPasswordLength) {
-          return 'Password too short (min ${AuthenticationWidgetConstants.minPasswordLength})';
+            value!.length <
+                AuthenticationValidatorConstants.minimumSizePassword) {
+          return 'Password too short (min ${AuthenticationValidatorConstants.minimumSizePassword})';
         }
         if (isConfirmPassword &&
             compareController != null &&

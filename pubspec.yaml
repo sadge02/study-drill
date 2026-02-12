@@ -12,7 +12,6 @@ dependencies:
   flutter:
     sdk: flutter
   json_annotation: ^4.10.0
-
   cupertino_icons: ^1.0.8
   firebase_core: ^4.4.0
   firebase_auth: ^6.1.4
@@ -24,6 +23,7 @@ dependencies:
   awesome_snackbar_content: ^0.1.8
   page_transition: ^2.2.1
   top_snackbar_flutter: ^3.3.0
+  flutter_animate: ^4.5.2
 
 dev_dependencies:
   flutter_test:
