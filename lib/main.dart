@@ -1,11 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:study_drill/screens/navigation/home_screen.dart';
 
 import 'config/firebase_options.dart';
-// Import your screens (create these files if you haven't yet)
 import 'screens/authentication/login_screen.dart';
-import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +27,7 @@ class MyApp extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasData) {
-            return const HomeScreen();
+            return HomeScreen();
           }
           return const LoginScreen();
         },

@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:study_drill/utils/constants/general_constants.dart';
 
 class Utils {
   static double getWidth(BuildContext context) {
@@ -6,12 +7,10 @@ class Utils {
   }
 
   static bool isMobile(BuildContext context) {
-    return getWidth(context) < 550;
+    return getWidth(context) < GeneralConstants.mobileThreshold;
   }
 
   static bool isValidEmail(String email) {
-    return RegExp(
-      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
-    ).hasMatch(email);
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 }

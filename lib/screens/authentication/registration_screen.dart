@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:study_drill/utils/constants/authentication/registration_screen_constants.dart';
+import 'package:study_drill/utils/constants/authentication/registration_screen/registration_screen_constants.dart';
 import 'package:study_drill/utils/constants/general_constants.dart';
 import 'package:study_drill/utils/utils.dart';
 import 'package:study_drill/widgets/authentication/authentication_input_field.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
-import '../../authentication/service/auth_service.dart';
+import '../../service/authentication/authentication_service.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+class RegistrationScreen extends StatefulWidget {
+  const RegistrationScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<RegistrationScreen> createState() => _RegistrationScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegistrationScreenState extends State<RegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _userController = TextEditingController();
@@ -25,7 +25,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   final _avatarLinkController = TextEditingController();
 
-  final AuthService _authService = AuthService();
+  final AuthenticationService _authService = AuthenticationService();
 
   bool _isPasswordObscure = true;
   bool _isConfirmPasswordObscure = true;
@@ -85,8 +85,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       backgroundColor: GeneralConstants.backgroundColor,
       appBar: AppBar(
         backgroundColor: GeneralConstants.backgroundColor,
-        elevation: GeneralConstants.notificationElevation,
-        toolbarHeight: RegistrationScreenConstants.appbarHeight,
+        elevation: GeneralConstants.appbarElevation,
+        toolbarHeight: GeneralConstants.appbarHeight,
         iconTheme: const IconThemeData(color: GeneralConstants.primaryColor),
         centerTitle: true,
         title: Text(
@@ -94,8 +94,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           textAlign: TextAlign.center,
           style: GoogleFonts.lexend(
             fontSize: Utils.isMobile(context)
-                ? RegistrationScreenConstants.titleSizeMobile
-                : RegistrationScreenConstants.titleSizeDesktop,
+                ? GeneralConstants.mediumTitleSize
+                : GeneralConstants.largeTitleSize,
             fontWeight: FontWeight.w200,
             color: GeneralConstants.primaryColor,
           ),
@@ -107,10 +107,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Center(
             child: SizedBox(
               width: Utils.isMobile(context)
-                  ? Utils.getWidth(context) *
-                        RegistrationScreenConstants.widthRatioMobile
+                  ? Utils.getWidth(context) * GeneralConstants.widthRatioMobile
                   : Utils.getWidth(context) *
-                        RegistrationScreenConstants.widthRatioDesktop,
+                        GeneralConstants.widthRatioDesktop,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 spacing: GeneralConstants.mediumSpacing,
