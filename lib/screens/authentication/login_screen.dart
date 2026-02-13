@@ -9,6 +9,7 @@ import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../../service/authentication/authentication_service.dart';
+import '../navigation/home_screen.dart';
 import 'registration_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -58,6 +59,17 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             snackBarPosition: SnackBarPosition.bottom,
             const CustomSnackBar.success(message: 'Login successful'),
+          );
+
+          Navigator.of(context).pushAndRemoveUntil<void>(
+            PageTransition<void>(
+              type: PageTransitionType.fade,
+              child: HomeScreen(),
+              duration: const Duration(
+                milliseconds: GeneralConstants.transitionDuration,
+              ),
+            ),
+            (route) => false,
           );
         }
       }

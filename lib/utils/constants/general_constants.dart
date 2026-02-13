@@ -45,9 +45,11 @@ class GeneralConstants {
   static const double largeTitleSize = 64;
 
   /// PADDINGS ///
+  static const double smallSmallPadding = 4;
   static const double smallPadding = 12;
   static const double mediumPadding = 18;
   static const double largePadding = 24;
+  static const double largeLargePadding = 40;
 
   /// MARGINS ///
   static const double smallMargin = 12;
@@ -64,6 +66,13 @@ class GeneralConstants {
   static const double widthRatioDesktop = 0.6;
 
   /// ICONS ///
+  static const double smallSmallIconSize = 14;
   static const double smallIconSize = 24;
   static const double mediumIconSize = 40;
+  static const double largeIconSize = 80;
+
+  /// ICONS ///
+  static const double smallOpacity = 0.25;
+  static const double mediumOpacity = 0.5;
+  static const double largeOpacity = 0.75;
 }
