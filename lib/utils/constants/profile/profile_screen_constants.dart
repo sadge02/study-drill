@@ -12,5 +12,14 @@ class ProfileScreenConstants {
   static const double profilePictureOpacity = 0.1;
 
   /// DATE ///
+  static const int usernameMaxLines = 1;
+
+  /// EMAIL ///
+  static const int emailMaxLines = 1;
+
+  /// SUMMARY ///
+  static const int summaryMaxLines = 5;
+
+  /// DATE ///
   static const double dateOpacity = 0.5;
 }

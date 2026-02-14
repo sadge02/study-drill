@@ -58,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
               milliseconds: GeneralConstants.notificationDuration,
             ),
             snackBarPosition: SnackBarPosition.bottom,
-            const CustomSnackBar.success(message: 'Login successful'),
+            const CustomSnackBar.success(message: 'Login Successful'),
           );
 
           Navigator.of(context).pushAndRemoveUntil<void>(

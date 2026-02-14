@@ -5,6 +5,8 @@ import 'package:page_transition/page_transition.dart';
 import 'package:study_drill/service/authentication/authentication_service.dart';
 import 'package:study_drill/utils/constants/general_constants.dart';
 import 'package:study_drill/utils/utils.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../../models/user/user_model.dart';
 import '../../service/user/user_service.dart';
@@ -12,8 +14,10 @@ import '../../utils/constants/navigation/home_screen/home_screen_constants.dart'
 import '../../widgets/navigation/dashboard_button.dart';
 import '../../widgets/navigation/dashboard_card.dart';
 import '../authentication/login_screen.dart';
+import '../groups/group_list_screen.dart';
+import '../groups/my_groups_screen.dart';
 import '../information/information_screen.dart';
-import '../profile/profile_screen.dart';
+import '../user/profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
@@ -60,7 +64,7 @@ class HomeScreen extends StatelessWidget {
 
                     /// WELCOME MESSAGE TITLE
                     Text(
-                          'Welcome $username!',
+                          'Welcome, $username!',
                           maxLines:
                               HomeScreenConstants.welcomeMessageTitleMaxLines,
                           overflow: TextOverflow.ellipsis,
@@ -98,8 +102,14 @@ class HomeScreen extends StatelessWidget {
                       icon: Icons.star_rounded,
                       color: GeneralConstants.primaryColor,
                       textColor: Colors.white,
-                      onTap: () => {
-                        // TODO: navigate to my groups list screen
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          PageTransition<void>(
+                            type: PageTransitionType.fade,
+                            child: const MyGroupsScreen(),
+                          ),
+                        );
                       },
                     ).animate().fade(duration: 500.ms).scale(),
 
@@ -128,7 +138,12 @@ class HomeScreen extends StatelessWidget {
                                 label: 'Find Groups',
                                 icon: Icons.groups_rounded,
                                 onTap: () => {
-                                  // TODO: navigate to search groups screen
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute<void>(
+                                      builder: (context) => const GroupListScreen(),
+                                    ),
+                                  ),
                                 },
                               ),
                             ),
@@ -205,6 +220,17 @@ class HomeScreen extends StatelessWidget {
                                         ),
                                       ),
                                       (route) => false,
+                                    );
+                                    showTopSnackBar(
+                                      Overlay.of(context),
+                                      displayDuration: const Duration(
+                                        milliseconds: GeneralConstants
+                                            .notificationDuration,
+                                      ),
+                                      snackBarPosition: SnackBarPosition.bottom,
+                                      const CustomSnackBar.success(
+                                        message: 'Logout Successful',
+                                      ),
                                     );
                                   }
                                 },

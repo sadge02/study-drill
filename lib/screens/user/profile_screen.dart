@@ -88,14 +88,14 @@ class ProfileScreen extends StatelessWidget {
                       : null,
                   child: user.profilePic.isEmpty
                       ? Text(
-                    user.username.isNotEmpty
-                        ? user.username[0].toUpperCase()
-                        : '?',
-                    style: GoogleFonts.lexend(
-                      fontSize: GeneralConstants.largeFontSize,
-                      color: GeneralConstants.primaryColor,
-                    ),
-                  )
+                          user.username.isNotEmpty
+                              ? user.username[0].toUpperCase()
+                              : '?',
+                          style: GoogleFonts.lexend(
+                            fontSize: GeneralConstants.largeFontSize,
+                            color: GeneralConstants.primaryColor,
+                          ),
+                        )
                       : null,
                 ).animate().scale(),
 
@@ -104,24 +104,13 @@ class ProfileScreen extends StatelessWidget {
                 /// USERNAME
                 Text(
                   user.username,
+                  maxLines: ProfileScreenConstants.usernameMaxLines,
                   style: GoogleFonts.lexend(
                     fontSize: GeneralConstants.largeFontSize,
                     fontWeight: FontWeight.bold,
                     color: GeneralConstants.primaryColor,
                   ),
                 ).animate().fade().slideY(begin: GeneralConstants.slideBegin),
-
-                /// CREATED AT
-                Text(
-                  'Member since ${DateFormat('MMMM yyyy').format(user.createdAt)}',
-                  style: GoogleFonts.lexend(
-                    fontSize: GeneralConstants.smallFontSize,
-                    color: GeneralConstants.primaryColor.withValues(alpha: ProfileScreenConstants.dateOpacity),
-                    fontWeight: FontWeight.w300,
-                  ),
-                ).animate().fade(delay: 100.ms),
-
-                const SizedBox(height: GeneralConstants.smallSpacing),
 
                 /// EMAIL
                 if (showEmail)
@@ -130,44 +119,78 @@ class ProfileScreen extends StatelessWidget {
                       Clipboard.setData(ClipboardData(text: user.email));
                       showTopSnackBar(
                         Overlay.of(context),
-                        const CustomSnackBar.success(message: 'Email copied to clipboard'),
+                        const CustomSnackBar.success(
+                          message: 'Email copied to clipboard',
+                        ),
                         snackBarPosition: SnackBarPosition.bottom,
                       );
                     },
-                    borderRadius: BorderRadius.circular(GeneralConstants.smallCircularRadius),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: GeneralConstants.smallPadding, vertical: GeneralConstants.smallSmallPadding),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.email_outlined, size: GeneralConstants.smallSmallIconSize, color: GeneralConstants.primaryColor.withValues(alpha: GeneralConstants.mediumOpacity)),
-
-                          const SizedBox(width: GeneralConstants.smallSmallSpacing),
-
-                          Text(
-                            user.email,
-                            style: GoogleFonts.lexend(
-                              fontSize: GeneralConstants.smallFontSize,
-                              color: GeneralConstants.primaryColor.withValues(alpha: GeneralConstants.mediumOpacity),
-                              decoration: TextDecoration.underline,
-                            ),
+                    borderRadius: BorderRadius.circular(
+                      GeneralConstants.smallCircularRadius,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.email_outlined,
+                          size: GeneralConstants.smallSmallIconSize,
+                          color: GeneralConstants.primaryColor.withValues(
+                            alpha: GeneralConstants.mediumOpacity,
                           ),
-                        ],
-                      ),
+                        ),
+
+                        const SizedBox(
+                          width: GeneralConstants.smallSmallSpacing,
+                        ),
+
+                        Text(
+                          user.email,
+                          maxLines: ProfileScreenConstants.emailMaxLines,
+                          style: GoogleFonts.lexend(
+                            fontSize: GeneralConstants.smallFontSize,
+                            color: GeneralConstants.primaryColor.withValues(
+                              alpha: GeneralConstants.mediumOpacity,
+                            ),
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
                     ),
                   ).animate().fade(delay: 200.ms),
+
+                const SizedBox(height: GeneralConstants.smallSpacing),
+
+                /// CREATED AT
+                Text(
+                  'Member since ${DateFormat('MMMM yyyy').format(user.createdAt)}',
+                  style: GoogleFonts.lexend(
+                    fontSize: GeneralConstants.smallFontSize,
+                    color: GeneralConstants.primaryColor.withValues(
+                      alpha: ProfileScreenConstants.dateOpacity,
+                    ),
+                    fontWeight: FontWeight.w300,
+                  ),
+                ).animate().fade(delay: 100.ms),
+
+                const SizedBox(height: GeneralConstants.smallSpacing),
 
                 /// SUMMARY
                 if (user.summary.isNotEmpty) ...[
                   const SizedBox(height: GeneralConstants.smallSpacing),
+
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: GeneralConstants.largeLargePadding),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: GeneralConstants.largeLargePadding,
+                    ),
                     child: Text(
                       user.summary,
                       textAlign: TextAlign.center,
+                      maxLines: ProfileScreenConstants.summaryMaxLines,
                       style: GoogleFonts.lexend(
                         fontSize: GeneralConstants.smallFontSize,
-                        color: GeneralConstants.primaryColor.withValues(alpha: GeneralConstants.largeOpacity),
+                        color: GeneralConstants.primaryColor.withValues(
+                          alpha: GeneralConstants.largeOpacity,
+                        ),
                       ),
                     ),
                   ).animate().fade().slideY(begin: GeneralConstants.slideBegin),
@@ -188,24 +211,12 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
 
-                Expanded(
+                const Expanded(
                   child: TabBarView(
                     children: [
-                      // Tab 1: Groups
-                      showGroups
-                          ? _buildMockList(
-                        icon: Icons.group_outlined,
-                        text: 'No active groups yet',
-                      )
-                          : _buildPrivatePlaceholder('Groups are private'),
-
-                      // Tab 2: Stats
-                      showStats
-                          ? _buildMockList(
-                        icon: Icons.bar_chart_rounded,
-                        text: 'No test history available',
-                      )
-                          : _buildPrivatePlaceholder('Statistics are private'),
+                      // TODO: add member's groups lists
+                      // TODO: add member's taken tests
+                      // TODO: add member's statistics
                     ],
                   ),
                 ),
@@ -215,37 +226,5 @@ class ProfileScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Widget _buildMockList({required IconData icon, required String text}) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 60, color: Colors.grey[300]),
-          const SizedBox(height: 16),
-          Text(text, style: GoogleFonts.lexend(color: Colors.grey[500])),
-        ],
-      ),
-    ).animate().fade(duration: 600.ms);
-  }
-
-  Widget _buildPrivatePlaceholder(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.lock_outline_rounded, size: 50, color: Colors.grey[300]),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: GoogleFonts.lexend(
-              color: Colors.grey[400],
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ),
-    ).animate().fade();
   }
 }
