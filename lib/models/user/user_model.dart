@@ -57,6 +57,19 @@ class UserPrivacySettings {
   final UserVisibility tests;
 }
 
+@JsonSerializable()
+class UserSettings {
+  UserSettings({this.getNotifications = true});
+
+  factory UserSettings.fromJson(Map<String, dynamic> json) =>
+      _$UserSettingsFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UserSettingsToJson(this);
+
+  @JsonKey(name: 'get_notifications')
+  final bool getNotifications;
+}
+
 @JsonSerializable(explicitToJson: true)
 class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) =>
@@ -71,8 +84,10 @@ class UserModel {
     required this.createdAt,
     this.statistics,
     this.privacySettings,
+    this.settings,
     required this.groupIds,
     this.friendIds = const [],
+    this.pendingFriendRequestIds = const [],
   });
 
   final String id;
@@ -91,11 +106,16 @@ class UserModel {
   @JsonKey(name: 'privacy_settings')
   final UserPrivacySettings? privacySettings;
 
+  final UserSettings? settings;
+
   @JsonKey(name: 'group_ids')
   final List<String> groupIds;
 
   @JsonKey(name: 'friend_ids')
   final List<String> friendIds;
+
+  @JsonKey(name: 'pending_friend_request_ids')
+  final List<String> pendingFriendRequestIds;
 
   Map<String, dynamic> toJson() => _$UserModelToJson(this);
 }

@@ -38,7 +38,7 @@ GroupModel _$GroupModelFromJson(Map<String, dynamic> json) => GroupModel(
   adminIds:
       (json['admin_ids'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
-  pendingUserIds:
+  pendingUserRequestIds:
       (json['pending_user_ids'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
@@ -71,7 +71,7 @@ Map<String, dynamic> _$GroupModelToJson(GroupModel instance) =>
       'tags': instance.tags,
       'user_ids': instance.userIds,
       'editor_user_ids': instance.editorUserIds,
-      'pending_user_ids': instance.pendingUserIds,
+      'pending_user_ids': instance.pendingUserRequestIds,
       'admin_ids': instance.adminIds,
       'test_ids': instance.testIds,
       'flashcard_ids': instance.flashcardIds,

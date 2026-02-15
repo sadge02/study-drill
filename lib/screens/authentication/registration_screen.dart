@@ -8,6 +8,7 @@ import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../../service/authentication/authentication_service.dart';
+import '../navigation/home_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -64,7 +65,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             snackBarPosition: SnackBarPosition.bottom,
             const CustomSnackBar.success(message: 'Registration successful.'),
           );
-          Navigator.pop(context);
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute<void>(builder: (context) => HomeScreen()),
+                (route) => false,
+          );
         } else {
           showTopSnackBar(
             Overlay.of(context),

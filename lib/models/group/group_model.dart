@@ -39,7 +39,7 @@ class GroupModel {
     this.userIds = const [],
     this.editorUserIds = const [],
     this.adminIds = const [],
-    this.pendingUserIds = const [],
+    this.pendingUserRequestIds = const [],
     this.testIds = const [],
     this.flashcardIds = const [],
     this.matchGameIds = const [],
@@ -67,7 +67,7 @@ class GroupModel {
   final List<String> editorUserIds;
 
   @JsonKey(name: 'pending_user_ids')
-  final List<String> pendingUserIds;
+  final List<String> pendingUserRequestIds;
 
   @JsonKey(name: 'admin_ids')
   final List<String> adminIds;
@@ -112,7 +112,7 @@ class GroupModel {
       tags: tags ?? this.tags,
       userIds: userIds ?? this.userIds,
       editorUserIds: editorUserIds ?? this.editorUserIds,
-      pendingUserIds: pendingUserIds ?? this.pendingUserIds,
+      pendingUserRequestIds: pendingUserIds ?? pendingUserRequestIds,
       adminIds: adminIds ?? this.adminIds,
       testIds: testIds ?? this.testIds,
       flashcardIds: flashcardIds ?? this.flashcardIds,

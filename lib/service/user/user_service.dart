@@ -9,13 +9,12 @@ class UserService {
   String? get currentUid => _authentication.currentUser?.uid;
 
   Stream<UserModel?> get currentUserStream {
-    if (currentUid == null) {
+    final uid = currentUid;
+    if (uid == null) {
       return Stream.value(null);
     }
-    return _database.collection('users').doc(currentUid).snapshots().map((
-      snapshot,
-    ) {
-      if (!snapshot.exists) {
+    return _database.collection('users').doc(uid).snapshots().map((snapshot) {
+      if (!snapshot.exists || snapshot.data() == null) {
         return null;
       }
       return UserModel.fromJson(snapshot.data()!);
@@ -23,11 +22,15 @@ class UserService {
   }
 
   Future<UserModel?> getUserById(String uid) async {
-    final document = await _database.collection('users').doc(uid).get();
-    if (!document.exists) {
+    try {
+      final document = await _database.collection('users').doc(uid).get();
+      if (!document.exists || document.data() == null) {
+        return null;
+      }
+      return UserModel.fromJson(document.data()!);
+    } catch (_) {
       return null;
     }
-    return UserModel.fromJson(document.data()!);
   }
 
   Stream<List<UserModel>> searchUsers(String query) {
@@ -46,47 +49,74 @@ class UserService {
         );
   }
 
-  Future<void> updateProfile({
+  Future<void> updateUser({
     String? username,
     String? summary,
     String? profilePic,
     UserPrivacySettings? privacySettings,
+    UserSettings? settings,
     List<String>? groupIds,
     List<String>? friendIds,
     UserTests? statistics,
   }) async {
-    final Map<String, dynamic> updates = {};
+    try {
+      final uid = currentUid;
 
-    if (username != null) {
-      updates['username'] = username;
+      if (uid == null) {
+        throw Exception('You must be logged in.');
+      }
+
+      final Map<String, dynamic> updates = {};
+
+      if (username != null) {
+        updates['username'] = username;
+      }
+
+      if (summary != null) {
+        updates['summary'] = summary;
+      }
+
+      if (profilePic != null) {
+        updates['profile_pic'] = profilePic;
+      }
+
+      if (privacySettings != null) {
+        updates['privacy_settings'] = privacySettings.toJson();
+      }
+
+      if (settings != null) {
+        updates['settings'] = settings.toJson();
+      }
+
+      if (statistics != null) {
+        updates['statistics'] = statistics.toJson();
+      }
+
+      if (groupIds != null) {
+        updates['group_ids'] = groupIds;
+      }
+
+      if (friendIds != null) {
+        updates['friend_ids'] = friendIds;
+      }
+
+      if (updates.isNotEmpty) {
+        await _database.collection('users').doc(uid).update(updates);
+      }
+    } catch (_) {
+      rethrow;
+    }
+  }
+
+  Future<void> addFriend(String friendId) async {
+    final uid = currentUid;
+
+    if (uid == null) {
+      throw Exception('You must be logged in.');
     }
 
-    if (summary != null) {
-      updates['summary'] = summary;
-    }
-
-    if (profilePic != null) {
-      updates['profile_pic'] = profilePic;
-    }
-
-    if (privacySettings != null) {
-      updates['privacy_settings'] = privacySettings.toJson();
-    }
-
-    if (statistics != null) {
-      updates['statistics'] = statistics.toJson();
-    }
-
-    if (groupIds != null) {
-      updates['group_ids'] = groupIds;
-    }
-
-    if (friendIds != null) {
-      updates['friend_ids'] = friendIds;
-    }
-
-    if (updates.isNotEmpty) {
-      await _database.collection('users').doc(currentUid).update(updates);
-    }
+    await _database.collection('users').doc(uid).update({
+      'friend_ids': FieldValue.arrayUnion([friendId]),
+    });
   }
 }

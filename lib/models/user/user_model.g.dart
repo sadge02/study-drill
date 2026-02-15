@@ -63,6 +63,12 @@ const _$UserVisibilityEnumMap = {
   UserVisibility.private: 'private',
 };
 
+UserSettings _$UserSettingsFromJson(Map<String, dynamic> json) =>
+    UserSettings(getNotifications: json['get_notifications'] as bool? ?? true);
+
+Map<String, dynamic> _$UserSettingsToJson(UserSettings instance) =>
+    <String, dynamic>{'get_notifications': instance.getNotifications};
+
 UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
   id: json['id'] as String,
   email: json['email'] as String,
@@ -78,11 +84,19 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
       : UserPrivacySettings.fromJson(
           json['privacy_settings'] as Map<String, dynamic>,
         ),
+  settings: json['settings'] == null
+      ? null
+      : UserSettings.fromJson(json['settings'] as Map<String, dynamic>),
   groupIds: (json['group_ids'] as List<dynamic>)
       .map((e) => e as String)
       .toList(),
   friendIds:
       (json['friend_ids'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
+  pendingFriendRequestIds:
+      (json['pending_friend_request_ids'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
       const [],
@@ -97,6 +111,8 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'created_at': instance.createdAt.toIso8601String(),
   'statistics': instance.statistics?.toJson(),
   'privacy_settings': instance.privacySettings?.toJson(),
+  'settings': instance.settings?.toJson(),
   'group_ids': instance.groupIds,
   'friend_ids': instance.friendIds,
+  'pending_friend_request_ids': instance.pendingFriendRequestIds,
 };

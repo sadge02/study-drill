@@ -14,7 +14,10 @@ class GroupDetailScreen extends StatelessWidget {
     return StreamBuilder<GroupModel?>(
       stream: groupService.getGroupStream(groupId),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (!snapshot.hasData)
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         final group = snapshot.data!;
 
         return Scaffold(
@@ -23,7 +26,10 @@ class GroupDetailScreen extends StatelessWidget {
               SliverAppBar(
                 expandedHeight: 200,
                 flexibleSpace: FlexibleSpaceBar(
-                  background: Image.network(group.profilePic, fit: BoxFit.cover),
+                  background: Image.network(
+                    group.profilePic,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               SliverToBoxAdapter(
@@ -36,19 +42,40 @@ class GroupDetailScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text(group.name,
-                                style: GoogleFonts.lexend(fontSize: 24, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              group.name,
+                              style: GoogleFonts.lexend(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                          Icon(group.visibility == GroupVisibility.private ? Icons.lock : Icons.public),
+                          Icon(
+                            group.visibility == GroupVisibility.private
+                                ? Icons.lock
+                                : Icons.public,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 10),
-                      Text(group.summary, style: GoogleFonts.lexend(color: Colors.grey[700])),
+                      Text(
+                        group.summary,
+                        style: GoogleFonts.lexend(color: Colors.grey[700]),
+                      ),
                       const Divider(height: 40),
 
-                      _buildInfoRow(Icons.people, '${group.userIds.length} Members'),
-                      _buildInfoRow(Icons.quiz, '${group.testIds.length} Tests'),
-                      _buildInfoRow(Icons.style, '${group.flashcardIds.length} Flashcards'),
+                      _buildInfoRow(
+                        Icons.people,
+                        '${group.userIds.length} Members',
+                      ),
+                      _buildInfoRow(
+                        Icons.quiz,
+                        '${group.testIds.length} Tests',
+                      ),
+                      _buildInfoRow(
+                        Icons.style,
+                        '${group.flashcardIds.length} Flashcards',
+                      ),
 
                       const SizedBox(height: 30),
 
@@ -58,8 +85,13 @@ class GroupDetailScreen extends StatelessWidget {
                         height: 50,
                         child: ElevatedButton(
                           onPressed: () => groupService.joinGroup(group),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                          child: Text('Join Group', style: GoogleFonts.lexend(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blueAccent,
+                          ),
+                          child: Text(
+                            'Join Group',
+                            style: GoogleFonts.lexend(color: Colors.white),
+                          ),
                         ),
                       ),
                     ],

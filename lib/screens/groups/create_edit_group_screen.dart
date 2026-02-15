@@ -27,8 +27,12 @@ class _CreateEditGroupScreenState extends State<CreateEditGroupScreen> {
     super.initState();
     // Initialize with existing data if editing, or defaults if creating
     _nameController = TextEditingController(text: widget.group?.name ?? '');
-    _summaryController = TextEditingController(text: widget.group?.summary ?? '');
-    _picController = TextEditingController(text: widget.group?.profilePic ?? '');
+    _summaryController = TextEditingController(
+      text: widget.group?.summary ?? '',
+    );
+    _picController = TextEditingController(
+      text: widget.group?.profilePic ?? '',
+    );
     _visibility = widget.group?.visibility ?? GroupVisibility.public;
     _autoAddAsEditor = widget.group?.settings?.autoAddAsEditor ?? false;
   }
@@ -63,7 +67,9 @@ class _CreateEditGroupScreenState extends State<CreateEditGroupScreen> {
         if (error == null) {
           Navigator.pop(context);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error)));
         }
       }
     }
@@ -76,7 +82,10 @@ class _CreateEditGroupScreenState extends State<CreateEditGroupScreen> {
     return Scaffold(
       backgroundColor: GeneralConstants.backgroundColor,
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Group' : 'Create Group', style: GoogleFonts.lexend()),
+        title: Text(
+          isEditing ? 'Edit Group' : 'Create Group',
+          style: GoogleFonts.lexend(),
+        ),
         backgroundColor: GeneralConstants.backgroundColor,
       ),
       body: SingleChildScrollView(
@@ -99,20 +108,31 @@ class _CreateEditGroupScreenState extends State<CreateEditGroupScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _picController,
-                decoration: const InputDecoration(labelText: 'Profile Picture URL'),
+                decoration: const InputDecoration(
+                  labelText: 'Profile Picture URL',
+                ),
               ),
               const SizedBox(height: 24),
 
               DropdownButtonFormField<GroupVisibility>(
                 value: _visibility,
                 decoration: const InputDecoration(labelText: 'Visibility'),
-                items: GroupVisibility.values.map((v) =>
-                    DropdownMenuItem(value: v, child: Text(v.name.toUpperCase()))).toList(),
+                items: GroupVisibility.values
+                    .map(
+                      (v) => DropdownMenuItem(
+                        value: v,
+                        child: Text(v.name.toUpperCase()),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (val) => setState(() => _visibility = val!),
               ),
 
               SwitchListTile(
-                title: Text('Auto-add members as editors', style: GoogleFonts.lexend(fontSize: 14)),
+                title: Text(
+                  'Auto-add members as editors',
+                  style: GoogleFonts.lexend(fontSize: 14),
+                ),
                 value: _autoAddAsEditor,
                 onChanged: (val) => setState(() => _autoAddAsEditor = val),
               ),
@@ -124,9 +144,13 @@ class _CreateEditGroupScreenState extends State<CreateEditGroupScreen> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _saveGroup,
-                  style: ElevatedButton.styleFrom(backgroundColor: GeneralConstants.primaryColor),
-                  child: Text(isEditing ? 'Update Group' : 'Create Group',
-                      style: GoogleFonts.lexend(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: GeneralConstants.primaryColor,
+                  ),
+                  child: Text(
+                    isEditing ? 'Update Group' : 'Create Group',
+                    style: GoogleFonts.lexend(color: Colors.white),
+                  ),
                 ),
               ),
             ],
