@@ -9,7 +9,7 @@ import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../../service/user/user_service.dart';
-import '../../utils/constants/profile/profile_screen_constants.dart';
+import '../../utils/constants/profile/screens/profile_screen_constants.dart';
 import '../../utils/utils.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -25,11 +25,11 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: GeneralConstants.backgroundColor,
         appBar: AppBar(
           backgroundColor: GeneralConstants.backgroundColor,
-          elevation: GeneralConstants.appbarElevation,
-          toolbarHeight: GeneralConstants.appbarHeight,
+          elevation: GeneralConstants.appBarElevation,
+          toolbarHeight: GeneralConstants.appBarHeight,
           centerTitle: true,
           title: Text(
-            ProfileScreenConstants.title,
+            ProfileScreenConstants.appBarTitle,
             textAlign: TextAlign.center,
             style: GoogleFonts.lexend(
               fontSize: Utils.isMobile(context)
@@ -139,9 +139,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ),
 
-                        const SizedBox(
-                          width: GeneralConstants.smallSmallSpacing,
-                        ),
+                        const SizedBox(width: GeneralConstants.tinySpacing),
 
                         Text(
                           user.email,
@@ -180,7 +178,7 @@ class ProfileScreen extends StatelessWidget {
 
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: GeneralConstants.largeLargePadding,
+                      horizontal: GeneralConstants.hugePadding,
                     ),
                     child: Text(
                       user.summary,
@@ -189,7 +187,7 @@ class ProfileScreen extends StatelessWidget {
                       style: GoogleFonts.lexend(
                         fontSize: GeneralConstants.smallFontSize,
                         color: GeneralConstants.primaryColor.withValues(
-                          alpha: GeneralConstants.largeOpacity,
+                          alpha: GeneralConstants.smallOpacity,
                         ),
                       ),
                     ),

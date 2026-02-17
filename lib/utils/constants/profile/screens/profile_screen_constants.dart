@@ -1,6 +1,6 @@
 class ProfileScreenConstants {
   /// APP BAR ///
-  static const String title = 'My Profile';
+  static const String appBarTitle = 'My Profile';
 
   /// TABS ///
   static const int tabNumber = 3;

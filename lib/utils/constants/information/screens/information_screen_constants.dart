@@ -1,4 +1,4 @@
 class InformationScreenConstants {
   /// APP BAR ///
-  static const String title = 'Information';
+  static const String appBarTitle = 'Information';
 }

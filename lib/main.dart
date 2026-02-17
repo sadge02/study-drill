@@ -1,37 +1,42 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:study_drill/screens/navigation/home_screen.dart';
+import 'package:study_drill/screens/error/initialization_error_screen.dart';
+import 'package:study_drill/utils/constants/general_constants.dart';
+import 'package:study_drill/widgets/wrapper/authentication/authentication_gate.dart';
 
 import 'config/firebase_options.dart';
-import 'screens/authentication/login_screen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const MyApp());
+  initializeApp();
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+Future<void> initializeApp() async {
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    runApp(const StudyDrillApp(onRestart: initializeApp));
+  } catch (_) {
+    runApp(const InitializationErrorScreen(onRestart: initializeApp));
+  }
+}
+
+class StudyDrillApp extends StatelessWidget {
+  const StudyDrillApp({super.key, required this.onRestart});
+
+  final VoidCallback onRestart;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Drill App',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasData) {
-            return HomeScreen();
-          }
-          return const LoginScreen();
-        },
+      title: GeneralConstants.appName,
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
       ),
+      home: AuthenticationGate(onRestart: onRestart),
     );
   }
 }

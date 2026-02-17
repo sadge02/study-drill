@@ -10,9 +10,9 @@ import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../../models/user/user_model.dart';
 import '../../service/user/user_service.dart';
-import '../../utils/constants/navigation/home_screen/home_screen_constants.dart';
-import '../../widgets/navigation/dashboard_button.dart';
-import '../../widgets/navigation/dashboard_card.dart';
+import '../../utils/constants/navigation/screens/home_screen_constants.dart';
+import '../../widgets/navigation/home_screen_button.dart';
+import '../../widgets/navigation/home_screen_card.dart';
 import '../authentication/login_screen.dart';
 import '../groups/group_list_screen.dart';
 import '../groups/my_groups_screen.dart';
@@ -31,11 +31,11 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: GeneralConstants.backgroundColor,
       appBar: AppBar(
         backgroundColor: GeneralConstants.backgroundColor,
-        elevation: GeneralConstants.appbarElevation,
-        toolbarHeight: GeneralConstants.appbarHeight,
+        elevation: GeneralConstants.appBarElevation,
+        toolbarHeight: GeneralConstants.appBarHeight,
         centerTitle: true,
         title: Text(
-          GeneralConstants.appName,
+          GeneralConstants.name,
           style: GoogleFonts.lexend(
             fontSize: Utils.isMobile(context)
                 ? GeneralConstants.mediumTitleSize
@@ -217,7 +217,7 @@ class HomeScreen extends StatelessWidget {
                                         child: const LoginScreen(),
                                         duration: const Duration(
                                           milliseconds: GeneralConstants
-                                              .transitionDuration,
+                                              .transitionDurationMs,
                                         ),
                                       ),
                                       (route) => false,
@@ -226,7 +226,7 @@ class HomeScreen extends StatelessWidget {
                                       Overlay.of(context),
                                       displayDuration: const Duration(
                                         milliseconds: GeneralConstants
-                                            .notificationDuration,
+                                            .notificationDurationMs,
                                       ),
                                       snackBarPosition: SnackBarPosition.bottom,
                                       const CustomSnackBar.success(

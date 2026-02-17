@@ -1,6 +1,6 @@
 class LoginScreenConstants {
   /// APP BAR ///
-  static const String title = 'Login';
+  static const String appBarTitle = 'Login';
 
   /// LOGIN BUTTON ///
   static const double buttonWidth = 150.0;

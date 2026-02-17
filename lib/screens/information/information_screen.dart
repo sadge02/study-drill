@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:study_drill/utils/constants/general_constants.dart';
-import 'package:study_drill/utils/constants/information/information_screen_constants.dart';
+import 'package:study_drill/utils/constants/information/screens/information_screen_constants.dart';
 
 import '../../utils/utils.dart';
 
@@ -14,11 +14,11 @@ class InformationScreen extends StatelessWidget {
       backgroundColor: GeneralConstants.backgroundColor,
       appBar: AppBar(
         backgroundColor: GeneralConstants.backgroundColor,
-        elevation: GeneralConstants.appbarElevation,
-        toolbarHeight: GeneralConstants.appbarHeight,
+        elevation: GeneralConstants.appBarElevation,
+        toolbarHeight: GeneralConstants.appBarHeight,
         centerTitle: true,
         title: Text(
-          InformationScreenConstants.title,
+          InformationScreenConstants.appBarTitle,
           textAlign: TextAlign.center,
           style: GoogleFonts.lexend(
             fontSize: Utils.isMobile(context)
@@ -46,7 +46,7 @@ class InformationScreen extends StatelessWidget {
 
             /// INFORMATION TEXT
             Text(
-              '${GeneralConstants.appName} Information',
+              '${GeneralConstants.name} Information',
               style: GoogleFonts.lexend(
                 fontSize: GeneralConstants.mediumFontSize,
                 color: GeneralConstants.primaryColor,
