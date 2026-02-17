@@ -9,14 +9,21 @@ part of 'group_model.dart';
 GroupSettings _$GroupSettingsFromJson(Map<String, dynamic> json) =>
     GroupSettings(
       autoAddAsEditor: json['auto_add_as_editor'] as bool? ?? false,
+      notifyOnNewContent: json['notify_on_new_content'] as bool? ?? true,
+      requiresApproval: json['requires_approval'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$GroupSettingsToJson(GroupSettings instance) =>
-    <String, dynamic>{'auto_add_as_editor': instance.autoAddAsEditor};
+    <String, dynamic>{
+      'auto_add_as_editor': instance.autoAddAsEditor,
+      'notify_on_new_content': instance.notifyOnNewContent,
+      'requires_approval': instance.requiresApproval,
+    };
 
 GroupModel _$GroupModelFromJson(Map<String, dynamic> json) => GroupModel(
   id: json['id'] as String,
   name: json['name'] as String,
+  nameLowercase: json['name_lowercase'] as String,
   summary: json['summary'] as String,
   profilePic: json['profile_pic'] as String,
   authorId: json['author_id'] as String,
@@ -57,17 +64,19 @@ GroupModel _$GroupModelFromJson(Map<String, dynamic> json) => GroupModel(
           .toList() ??
       const [],
   createdAt: DateTime.parse(json['created_at'] as String),
+  updatedAt: DateTime.parse(json['updated_at'] as String),
 );
 
 Map<String, dynamic> _$GroupModelToJson(GroupModel instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
+      'name_lowercase': instance.nameLowercase,
       'summary': instance.summary,
       'profile_pic': instance.profilePic,
       'author_id': instance.authorId,
       'visibility': _$GroupVisibilityEnumMap[instance.visibility]!,
-      'settings': instance.settings?.toJson(),
+      'settings': instance.settings.toJson(),
       'tags': instance.tags,
       'user_ids': instance.userIds,
       'editor_user_ids': instance.editorUserIds,
@@ -77,6 +86,7 @@ Map<String, dynamic> _$GroupModelToJson(GroupModel instance) =>
       'flashcard_ids': instance.flashcardIds,
       'match_game_ids': instance.matchGameIds,
       'created_at': instance.createdAt.toIso8601String(),
+      'updated_at': instance.updatedAt.toIso8601String(),
     };
 
 const _$GroupVisibilityEnumMap = {

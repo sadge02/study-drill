@@ -63,19 +63,27 @@ const _$UserVisibilityEnumMap = {
   UserVisibility.private: 'private',
 };
 
-UserSettings _$UserSettingsFromJson(Map<String, dynamic> json) =>
-    UserSettings(getNotifications: json['get_notifications'] as bool? ?? true);
+UserSettings _$UserSettingsFromJson(Map<String, dynamic> json) => UserSettings(
+  getInAppNotifications: json['get_notifications'] as bool? ?? true,
+  getPushNotifications: json['get_push_notifications'] as bool? ?? true,
+);
 
 Map<String, dynamic> _$UserSettingsToJson(UserSettings instance) =>
-    <String, dynamic>{'get_notifications': instance.getNotifications};
+    <String, dynamic>{
+      'get_notifications': instance.getInAppNotifications,
+      'get_push_notifications': instance.getPushNotifications,
+    };
 
 UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
   id: json['id'] as String,
   email: json['email'] as String,
   username: json['username'] as String,
+  usernameLowercase: json['username_lowercase'] as String,
   summary: json['summary'] as String,
   profilePic: json['profile_pic'] as String,
   createdAt: DateTime.parse(json['created_at'] as String),
+  updatedAt: DateTime.parse(json['updated_at'] as String),
+  fcmToken: json['fcm_token'] as String?,
   statistics: json['statistics'] == null
       ? null
       : UserTests.fromJson(json['statistics'] as Map<String, dynamic>),
@@ -106,12 +114,15 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'id': instance.id,
   'email': instance.email,
   'username': instance.username,
+  'username_lowercase': instance.usernameLowercase,
   'summary': instance.summary,
   'profile_pic': instance.profilePic,
+  'fcm_token': instance.fcmToken,
   'created_at': instance.createdAt.toIso8601String(),
-  'statistics': instance.statistics?.toJson(),
-  'privacy_settings': instance.privacySettings?.toJson(),
-  'settings': instance.settings?.toJson(),
+  'updated_at': instance.updatedAt.toIso8601String(),
+  'statistics': instance.statistics.toJson(),
+  'privacy_settings': instance.privacySettings.toJson(),
+  'settings': instance.settings.toJson(),
   'group_ids': instance.groupIds,
   'friend_ids': instance.friendIds,
   'pending_friend_request_ids': instance.pendingFriendRequestIds,

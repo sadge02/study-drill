@@ -17,6 +17,11 @@ class AuthenticationValidatorConstants {
   static const String invalidEmailMessage =
       'Please enter a valid email address.';
 
+  static const String unexpectedErrorMessage =
+      'An unexpected error occurred. Please try again.';
+
+  static const String usernameTakenMessage = 'This username is already taken.';
+
   static const String usernameShortMessage =
       'Username must be at least ${AuthenticationValidatorConstants.minimumSizeUsername} character';
   static const String passwordShortMessage =
@@ -33,4 +38,20 @@ class AuthenticationValidatorConstants {
 
   static const String passwordComplexityMessage =
       'Password must contain both letters and numbers.';
+
+  static const String emailNotValidMessage = 'The email address is not valid.';
+
+  static const String wrongPasswordMessage = 'The password is incorrect.';
+
+  static const String userNotFoundMessage =
+      'No user found with the provided email.';
+
+  static const String emailAlreadyInUseMessage =
+      'The email address is already in use by another account.';
+
+  static const String weakPasswordMessage =
+      'The password provided is too weak.';
+
+  static const String authenticationFailedMessage =
+      'Authentication failed. Please check your credentials and try again.';
 }

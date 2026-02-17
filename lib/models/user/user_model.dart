@@ -11,35 +11,55 @@ enum UserVisibility {
 
 @JsonSerializable()
 class UserTestResult {
+  UserTestResult({this.repetitions = 0, this.correct = 0, this.incorrect = 0});
+
   factory UserTestResult.fromJson(Map<String, dynamic> json) =>
       _$UserTestResultFromJson(json);
 
-  UserTestResult({this.repetitions = 0, this.correct = 0, this.incorrect = 0});
+  Map<String, dynamic> toJson() => _$UserTestResultToJson(this);
 
   final int repetitions;
-
   final int correct;
   final int incorrect;
 
-  Map<String, dynamic> toJson() => _$UserTestResultToJson(this);
+  double get accuracy {
+    final total = correct + incorrect;
+    return total == 0 ? 0.0 : (correct / total) * 100;
+  }
 }
 
 @JsonSerializable()
 class UserTests {
+  UserTests({this.userTests = const {}});
+
   factory UserTests.fromJson(Map<String, dynamic> json) =>
       _$UserTestsFromJson(json);
 
-  UserTests({this.userTests = const {}});
+  Map<String, dynamic> toJson() => _$UserTestsToJson(this);
 
   @JsonKey(name: 'user_tests')
   final Map<String, UserTestResult> userTests;
 
-  Map<String, dynamic> toJson() => _$UserTestsToJson(this);
+  int get totalTestsTaken =>
+      userTests.values.fold(0, (sum, item) => sum + item.repetitions);
+
+  double get globalAccuracy {
+    if (userTests.isEmpty) return 0.0;
+    int totalCorrect = 0;
+    int totalAttempted = 0;
+
+    for (var result in userTests.values) {
+      totalCorrect += result.correct;
+      totalAttempted += (result.correct + result.incorrect);
+    }
+
+    return totalAttempted == 0 ? 0.0 : (totalCorrect / totalAttempted) * 100;
+  }
 }
 
 @JsonSerializable()
 class UserPrivacySettings {
-  UserPrivacySettings({
+  const UserPrivacySettings({
     this.email = UserVisibility.private,
     this.statistics = UserVisibility.public,
     this.groups = UserVisibility.public,
@@ -59,7 +79,10 @@ class UserPrivacySettings {
 
 @JsonSerializable()
 class UserSettings {
-  UserSettings({this.getNotifications = true});
+  const UserSettings({
+    this.getInAppNotifications = true,
+    this.getPushNotifications = true,
+  });
 
   factory UserSettings.fromJson(Map<String, dynamic> json) =>
       _$UserSettingsFromJson(json);
@@ -67,46 +90,66 @@ class UserSettings {
   Map<String, dynamic> toJson() => _$UserSettingsToJson(this);
 
   @JsonKey(name: 'get_notifications')
-  final bool getNotifications;
+  final bool getInAppNotifications;
+
+  @JsonKey(name: 'get_push_notifications')
+  final bool getPushNotifications;
 }
 
 @JsonSerializable(explicitToJson: true)
 class UserModel {
-  factory UserModel.fromJson(Map<String, dynamic> json) =>
-      _$UserModelFromJson(json);
-
   UserModel({
     required this.id,
     required this.email,
     required this.username,
+    required this.usernameLowercase,
     required this.summary,
     required this.profilePic,
     required this.createdAt,
-    this.statistics,
-    this.privacySettings,
-    this.settings,
+    required this.updatedAt,
+    this.fcmToken,
+    UserTests? statistics,
+    UserPrivacySettings? privacySettings,
+    UserSettings? settings,
     required this.groupIds,
     this.friendIds = const [],
     this.pendingFriendRequestIds = const [],
-  });
+  }) : statistics = statistics ?? UserTests(),
+       privacySettings = privacySettings ?? const UserPrivacySettings(),
+       settings = settings ?? const UserSettings();
+
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      _$UserModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UserModelToJson(this);
 
   final String id;
   final String email;
   final String username;
+
+  @JsonKey(name: 'username_lowercase')
+  final String usernameLowercase;
+
   final String summary;
 
   @JsonKey(name: 'profile_pic')
   final String profilePic;
 
+  @JsonKey(name: 'fcm_token')
+  final String? fcmToken;
+
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
-  final UserTests? statistics;
+  @JsonKey(name: 'updated_at')
+  final DateTime updatedAt;
+
+  final UserTests statistics;
 
   @JsonKey(name: 'privacy_settings')
-  final UserPrivacySettings? privacySettings;
+  final UserPrivacySettings privacySettings;
 
-  final UserSettings? settings;
+  final UserSettings settings;
 
   @JsonKey(name: 'group_ids')
   final List<String> groupIds;
@@ -116,6 +159,4 @@ class UserModel {
 
   @JsonKey(name: 'pending_friend_request_ids')
   final List<String> pendingFriendRequestIds;
-
-  Map<String, dynamic> toJson() => _$UserModelToJson(this);
 }

@@ -11,7 +11,11 @@ enum GroupVisibility {
 
 @JsonSerializable()
 class GroupSettings {
-  GroupSettings({this.autoAddAsEditor = false});
+  GroupSettings({
+    this.autoAddAsEditor = false,
+    this.notifyOnNewContent = true,
+    this.requiresApproval = false,
+  });
 
   factory GroupSettings.fromJson(Map<String, dynamic> json) =>
       _$GroupSettingsFromJson(json);
@@ -20,21 +24,25 @@ class GroupSettings {
 
   @JsonKey(name: 'auto_add_as_editor')
   final bool autoAddAsEditor;
+
+  @JsonKey(name: 'notify_on_new_content')
+  final bool notifyOnNewContent;
+
+  @JsonKey(name: 'requires_approval')
+  final bool requiresApproval;
 }
 
 @JsonSerializable(explicitToJson: true)
 class GroupModel {
-  factory GroupModel.fromJson(Map<String, dynamic> json) =>
-      _$GroupModelFromJson(json);
-
   GroupModel({
     required this.id,
     required this.name,
+    required this.nameLowercase,
     required this.summary,
     required this.profilePic,
     required this.authorId,
     required this.visibility,
-    required this.settings,
+    GroupSettings? settings,
     this.tags = const [],
     this.userIds = const [],
     this.editorUserIds = const [],
@@ -44,10 +52,20 @@ class GroupModel {
     this.flashcardIds = const [],
     this.matchGameIds = const [],
     required this.createdAt,
-  });
+    required this.updatedAt,
+  }) : settings = settings ?? GroupSettings();
+
+  factory GroupModel.fromJson(Map<String, dynamic> json) =>
+      _$GroupModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$GroupModelToJson(this);
 
   final String id;
   final String name;
+
+  @JsonKey(name: 'name_lowercase')
+  final String nameLowercase;
+
   final String summary;
 
   @JsonKey(name: 'profile_pic')
@@ -57,7 +75,7 @@ class GroupModel {
   final String authorId;
 
   final GroupVisibility visibility;
-  final GroupSettings? settings;
+  final GroupSettings settings;
   final List<String> tags;
 
   @JsonKey(name: 'user_ids')
@@ -84,6 +102,18 @@ class GroupModel {
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
 
+  @JsonKey(name: 'updated_at')
+  final DateTime updatedAt;
+
+  int get memberCount => userIds.length;
+
+  int get totalContentCount =>
+      testIds.length + flashcardIds.length + matchGameIds.length;
+
+  bool isAdmin(String uid) => adminIds.contains(uid);
+
+  bool isEditor(String uid) => editorUserIds.contains(uid);
+
   GroupModel copyWith({
     String? name,
     String? summary,
@@ -98,12 +128,13 @@ class GroupModel {
     List<String>? testIds,
     List<String>? flashcardIds,
     List<String>? matchGameIds,
+    DateTime? updatedAt,
   }) {
     return GroupModel(
       id: id,
       authorId: authorId,
       createdAt: createdAt,
-
+      nameLowercase: name?.toLowerCase() ?? nameLowercase,
       name: name ?? this.name,
       summary: summary ?? this.summary,
       profilePic: profilePic ?? this.profilePic,
@@ -117,8 +148,7 @@ class GroupModel {
       testIds: testIds ?? this.testIds,
       flashcardIds: flashcardIds ?? this.flashcardIds,
       matchGameIds: matchGameIds ?? this.matchGameIds,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
-
-  Map<String, dynamic> toJson() => _$GroupModelToJson(this);
 }
