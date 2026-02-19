@@ -83,7 +83,6 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
   profilePic: json['profile_pic'] as String,
   createdAt: DateTime.parse(json['created_at'] as String),
   updatedAt: DateTime.parse(json['updated_at'] as String),
-  fcmToken: json['fcm_token'] as String?,
   statistics: json['statistics'] == null
       ? null
       : UserTests.fromJson(json['statistics'] as Map<String, dynamic>),
@@ -117,7 +116,6 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'username_lowercase': instance.usernameLowercase,
   'summary': instance.summary,
   'profile_pic': instance.profilePic,
-  'fcm_token': instance.fcmToken,
   'created_at': instance.createdAt.toIso8601String(),
   'updated_at': instance.updatedAt.toIso8601String(),
   'statistics': instance.statistics.toJson(),

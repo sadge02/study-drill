@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide User;
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:study_drill/models/user/user_model.dart';
+import 'package:study_drill/utils/constants/collections/database_constants.dart';
 import 'package:study_drill/utils/constants/validator/authentication_validator_constants.dart';
 import 'package:study_drill/utils/validators/authentication_validator.dart';
 
@@ -9,10 +9,10 @@ class AuthenticationService {
   final FirebaseAuth _authentication = FirebaseAuth.instance;
 
   final FirebaseFirestore _database = FirebaseFirestore.instance;
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
 
-  static const String _userCollection = 'users';
-  static const String _usernameCollection = 'usernames';
+  static const String _userCollection = DatabaseConstants.usersCollection;
+  static const String _usernameCollection =
+      DatabaseConstants.usernamesCollection;
 
   Future<bool> isUsernameTaken(String username) async {
     final doc = await _database
@@ -39,7 +39,7 @@ class AuthenticationService {
       }
 
       final credentials = await _authentication.createUserWithEmailAndPassword(
-        email: email.trim(),
+        email: email,
         password: password,
       );
 
@@ -49,21 +49,15 @@ class AuthenticationService {
           profilePicUrl ??
           'https://ui-avatars.com/api/?name=$username&background=27374D&color=fff';
 
-      String? token;
-      try {
-        token = await _messaging.getToken();
-      } catch (_) {}
-
       final UserModel newUser = UserModel(
         id: uid,
-        email: email.trim(),
-        username: username.trim(),
-        usernameLowercase: username.trim().toLowerCase(),
+        email: email,
+        username: username,
+        usernameLowercase: username.toLowerCase(),
         summary: '',
         profilePic: profilePic,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        fcmToken: token,
         groupIds: [],
       );
 
@@ -73,17 +67,15 @@ class AuthenticationService {
         _database.collection(_userCollection).doc(uid),
         newUser.toJson(),
       );
-
       batch.set(
-        _database
-            .collection(_usernameCollection)
-            .doc(username.trim().toLowerCase()),
+        _database.collection(_usernameCollection).doc(username.toLowerCase()),
         {'uid': uid},
       );
 
       await batch.commit();
 
       await credentials.user?.updateDisplayName(username);
+
       await credentials.user?.updatePhotoURL(profilePic);
 
       return null;
@@ -99,12 +91,10 @@ class AuthenticationService {
     required String password,
   }) async {
     try {
-      final credentials = await _authentication.signInWithEmailAndPassword(
-        email: email.trim(),
+      await _authentication.signInWithEmailAndPassword(
+        email: email,
         password: password,
       );
-
-      _updateDeviceToken(credentials.user!.uid);
 
       return null;
     } on FirebaseAuthException catch (exception) {
@@ -114,7 +104,8 @@ class AuthenticationService {
 
   Future<String?> sendPasswordReset(String email) async {
     try {
-      await _authentication.sendPasswordResetEmail(email: email.trim());
+      await _authentication.sendPasswordResetEmail(email: email);
+
       return null;
     } on FirebaseAuthException catch (exception) {
       return _handleAuthError(exception);
@@ -146,31 +137,27 @@ class AuthenticationService {
 
   String _handleAuthError(FirebaseAuthException exception) {
     switch (exception.code) {
-      case 'weak-password':
-        return AuthenticationValidatorConstants.weakPasswordMessage;
-      case 'email-already-in-use':
+      case AuthenticationValidatorConstants.weakPasswordException:
+        return AuthenticationValidatorConstants.passwordWeakMessage;
+      case AuthenticationValidatorConstants.emailAlreadyInUseException:
         return AuthenticationValidatorConstants.emailAlreadyInUseMessage;
-      case 'user-not-found':
+      case AuthenticationValidatorConstants.userNotFoundException:
         return AuthenticationValidatorConstants.userNotFoundMessage;
-      case 'wrong-password':
-        return AuthenticationValidatorConstants.wrongPasswordMessage;
-      case 'invalid-email':
-        return AuthenticationValidatorConstants.emailNotValidMessage;
+      case AuthenticationValidatorConstants.wrongPasswordException:
+        return AuthenticationValidatorConstants.passwordWrongMessage;
+      case AuthenticationValidatorConstants.invalidCredentialException:
+        return AuthenticationValidatorConstants.invalidCredentialsMessage;
+      case AuthenticationValidatorConstants.invalidEmailException:
+        return AuthenticationValidatorConstants.emailInvalidMessage;
+      case AuthenticationValidatorConstants.userDisabledException:
+        return AuthenticationValidatorConstants.userDisabledMessage;
+      case AuthenticationValidatorConstants.tooManyRequestsException:
+        return AuthenticationValidatorConstants.tooManyRequestsMessage;
+      case AuthenticationValidatorConstants.networkRequestFailedException:
+        return AuthenticationValidatorConstants.networkRequestFailed;
       default:
         return exception.message ??
-            AuthenticationValidatorConstants.authenticationFailedMessage;
+            AuthenticationValidatorConstants.unexpectedErrorMessage;
     }
-  }
-
-  Future<void> _updateDeviceToken(String uid) async {
-    try {
-      final String? token = await _messaging.getToken();
-      if (token != null) {
-        await _database.collection(_userCollection).doc(uid).update({
-          'fcm_token': token,
-          'updated_at': DateTime.now().toIso8601String(),
-        });
-      }
-    } catch (_) {}
   }
 }

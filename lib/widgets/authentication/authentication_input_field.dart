@@ -89,7 +89,7 @@ class AuthenticationInputField extends StatelessWidget {
     switch (type) {
       case AuthenticationInputType.email:
         if (!Utils.isValidEmail(value!)) {
-          return AuthenticationValidatorConstants.invalidEmailMessage;
+          return AuthenticationValidatorConstants.emailInvalidMessage;
         }
         break;
       case AuthenticationInputType.password:

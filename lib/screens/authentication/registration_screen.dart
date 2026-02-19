@@ -52,7 +52,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         username: _userController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
-        profilePicUrl: _profilePicUrl,
+        profilePicUrl: _profilePicUrl.trim(),
       );
 
       if (mounted) {

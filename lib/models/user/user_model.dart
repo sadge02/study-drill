@@ -107,7 +107,6 @@ class UserModel {
     required this.profilePic,
     required this.createdAt,
     required this.updatedAt,
-    this.fcmToken,
     UserTests? statistics,
     UserPrivacySettings? privacySettings,
     UserSettings? settings,
@@ -134,9 +133,6 @@ class UserModel {
 
   @JsonKey(name: 'profile_pic')
   final String profilePic;
-
-  @JsonKey(name: 'fcm_token')
-  final String? fcmToken;
 
   @JsonKey(name: 'created_at')
   final DateTime createdAt;

@@ -3,7 +3,7 @@ import 'package:study_drill/utils/constants/validator/authentication_validator_c
 class AuthenticationValidator {
   static String? validateUsername(String? username) {
     if (username == null || username.isEmpty) {
-      return AuthenticationValidatorConstants.requiredUsernameMessage;
+      return AuthenticationValidatorConstants.usernameRequiredMessage;
     }
     if (username.length <
         AuthenticationValidatorConstants.minimumSizeUsername) {
@@ -18,11 +18,11 @@ class AuthenticationValidator {
 
   static String? validateEmail(String? email) {
     if (email == null || email.isEmpty) {
-      return AuthenticationValidatorConstants.requiredEmailMessage;
+      return AuthenticationValidatorConstants.emailRequiredMessage;
     }
     final regex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!regex.hasMatch(email)) {
-      return AuthenticationValidatorConstants.invalidEmailMessage;
+      return AuthenticationValidatorConstants.emailInvalidMessage;
     }
     if (email.length > AuthenticationValidatorConstants.maximumSizeEmail) {
       return AuthenticationValidatorConstants.emailLongMessage;
@@ -32,7 +32,7 @@ class AuthenticationValidator {
 
   static String? validatePassword(String? password) {
     if (password == null || password.isEmpty) {
-      return AuthenticationValidatorConstants.requiredPasswordMessage;
+      return AuthenticationValidatorConstants.passwordRequiredMessage;
     }
     if (password.length <
         AuthenticationValidatorConstants.minimumSizePassword) {

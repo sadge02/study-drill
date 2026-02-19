@@ -5,10 +5,14 @@ import 'package:page_transition/page_transition.dart';
 import 'package:study_drill/models/group/group_model.dart';
 import 'package:study_drill/service/group/group_service.dart';
 import 'package:study_drill/utils/constants/general_constants.dart';
+
 import 'create_edit_group_screen.dart';
 
 // Enum for the "My Role" filter
 enum GroupRoleFilter { all, createdByMe, member }
+
+// Enum for Sorting (Must match the UI labels)
+enum GroupSortOption { newest, oldest, mostMembers, alphabetical }
 
 class MyGroupsScreen extends StatefulWidget {
   const MyGroupsScreen({super.key});
@@ -20,15 +24,15 @@ class MyGroupsScreen extends StatefulWidget {
 class _MyGroupsScreenState extends State<MyGroupsScreen> {
   final GroupService _groupService = GroupService();
   final TextEditingController _searchController = TextEditingController();
+  final String _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   // --- Filter State ---
   String _searchQuery = '';
   GroupSortOption _sortOption = GroupSortOption.newest;
   GroupRoleFilter _roleFilter = GroupRoleFilter.all;
 
-  // We store selected tags here.
-  // We will derive "available tags" dynamically from the loaded groups.
-  final List<String> _selectedTags = [];
+  // Selected Tags
+  final Set<String> _selectedTags = {};
 
   @override
   void dispose() {
@@ -36,11 +40,59 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
     super.dispose();
   }
 
+  // --- LOGIC: Filter & Sort ---
+  List<GroupModel> _processGroups(List<GroupModel> allGroups) {
+    // 1. Filter by Role
+    var result = allGroups.where((group) {
+      if (_roleFilter == GroupRoleFilter.createdByMe) {
+        return group.authorId == _currentUserId;
+      }
+      if (_roleFilter == GroupRoleFilter.member) {
+        return group.authorId != _currentUserId;
+      }
+      return true;
+    }).toList();
+
+    // 2. Filter by Search Query (Using new nameLowercase field)
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      result = result.where((group) {
+        return group.nameLowercase.contains(query);
+      }).toList();
+    }
+
+    // 3. Filter by Tags
+    if (_selectedTags.isNotEmpty) {
+      result = result.where((group) {
+        return _selectedTags.any((tag) => group.tags.contains(tag));
+      }).toList();
+    }
+
+    // 4. Sort
+    switch (_sortOption) {
+      case GroupSortOption.newest:
+        result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case GroupSortOption.oldest:
+        result.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case GroupSortOption.mostMembers:
+        result.sort((a, b) => b.memberCount.compareTo(a.memberCount));
+        break;
+      case GroupSortOption.alphabetical:
+        result.sort((a, b) => a.nameLowercase.compareTo(b.nameLowercase));
+        break;
+    }
+
+    return result;
+  }
+
   /// Opens the Filter/Sort Bottom Sheet
   void _showFilterModal(List<String> availableTags) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -48,7 +100,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             return Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,30 +109,41 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                     child: Container(
                       width: 40,
                       height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
                         color: Colors.grey[300],
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
 
                   // 1. Role Filter
-                  Text('Show Groups', style: GoogleFonts.lexend(fontWeight: FontWeight.bold, fontSize: 16)),
+                  _buildSectionTitle('Show Groups'),
                   const SizedBox(height: 10),
                   SegmentedButton<GroupRoleFilter>(
                     segments: const [
-                      ButtonSegment(value: GroupRoleFilter.all, label: Text('All')),
-                      ButtonSegment(value: GroupRoleFilter.createdByMe, label: Text('Created')),
-                      ButtonSegment(value: GroupRoleFilter.member, label: Text('Joined')),
+                      ButtonSegment(
+                        value: GroupRoleFilter.all,
+                        label: Text('All'),
+                      ),
+                      ButtonSegment(
+                        value: GroupRoleFilter.createdByMe,
+                        label: Text('Created'),
+                      ),
+                      ButtonSegment(
+                        value: GroupRoleFilter.member,
+                        label: Text('Joined'),
+                      ),
                     ],
                     selected: {_roleFilter},
                     onSelectionChanged: (Set<GroupRoleFilter> newSelection) {
                       setModalState(() => _roleFilter = newSelection.first);
-                      setState(() {}); // Update parent
+                      setState(() {});
                     },
                     style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+                      backgroundColor: WidgetStateProperty.resolveWith<Color>((
+                        states,
+                      ) {
                         if (states.contains(WidgetState.selected)) {
                           return GeneralConstants.primaryColor.withOpacity(0.2);
                         }
@@ -92,7 +155,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                   const SizedBox(height: 20),
 
                   // 2. Sort Options
-                  Text('Sort By', style: GoogleFonts.lexend(fontWeight: FontWeight.bold, fontSize: 16)),
+                  _buildSectionTitle('Sort By'),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -101,10 +164,15 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                       return ChoiceChip(
                         label: Text(_getSortLabel(option)),
                         selected: isSelected,
-                        selectedColor: GeneralConstants.primaryColor.withOpacity(0.2),
+                        selectedColor: GeneralConstants.primaryColor
+                            .withOpacity(0.2),
                         labelStyle: TextStyle(
-                          color: isSelected ? GeneralConstants.primaryColor : Colors.black,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected
+                              ? GeneralConstants.primaryColor
+                              : Colors.black,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                         onSelected: (bool selected) {
                           if (selected) {
@@ -120,7 +188,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
 
                   // 3. Tag Filter
                   if (availableTags.isNotEmpty) ...[
-                    Text('Filter by Tags', style: GoogleFonts.lexend(fontWeight: FontWeight.bold, fontSize: 16)),
+                    _buildSectionTitle('Filter by Tags'),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
@@ -131,7 +199,8 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                           label: Text(tag),
                           selected: isSelected,
                           checkmarkColor: GeneralConstants.primaryColor,
-                          selectedColor: GeneralConstants.primaryColor.withOpacity(0.2),
+                          selectedColor: GeneralConstants.primaryColor
+                              .withOpacity(0.2),
                           onSelected: (bool selected) {
                             setModalState(() {
                               if (selected) {
@@ -154,13 +223,17 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: GeneralConstants.primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: () => Navigator.pop(context),
-                      child: Text("Apply Filters", style: GoogleFonts.lexend(color: Colors.white)),
+                      child: Text(
+                        "Apply Filters",
+                        style: GoogleFonts.lexend(color: Colors.white),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 20),
                 ],
               ),
             );
@@ -170,27 +243,37 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
     );
   }
 
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.lexend(fontWeight: FontWeight.bold, fontSize: 16),
+    );
+  }
+
   String _getSortLabel(GroupSortOption option) {
     switch (option) {
-      case GroupSortOption.newest: return 'Newest';
-      case GroupSortOption.oldest: return 'Oldest';
-      case GroupSortOption.mostMembers: return 'Popular';
-      case GroupSortOption.leastMembers: return 'Smallest';
-      case GroupSortOption.alphabetical: return 'A-Z';
+      case GroupSortOption.newest:
+        return 'Newest';
+      case GroupSortOption.oldest:
+        return 'Oldest';
+      case GroupSortOption.mostMembers:
+        return 'Popular';
+      case GroupSortOption.alphabetical:
+        return 'A-Z';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Current User ID
-    final user = FirebaseAuth.instance.currentUser;
-
     return Scaffold(
       backgroundColor: GeneralConstants.backgroundColor,
       appBar: AppBar(
         title: Text(
           'My Groups',
-          style: GoogleFonts.lexend(color: GeneralConstants.primaryColor, fontWeight: FontWeight.bold),
+          style: GoogleFonts.lexend(
+            color: GeneralConstants.primaryColor,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: GeneralConstants.backgroundColor,
         elevation: 0,
@@ -207,69 +290,57 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
         ),
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: user == null
+      body: _currentUserId.isEmpty
           ? const Center(child: Text("Please login first"))
           : StreamBuilder<List<GroupModel>>(
-        stream: _groupService.getUserGroupsStream(), // 1. Fetch ALL user groups
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            print('Error: ${snapshot.error}');
-            return Center(child: Text("Error: ${snapshot.error}"));
-          }
+              stream: _groupService.getUserGroupsStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}"));
+                }
 
-          final allUserGroups = snapshot.data ?? [];
+                final allUserGroups = snapshot.data ?? [];
 
-          // 2. Extract Tags for the Filter Dropdown
-          // We create a Set to get unique tags from all groups the user has.
-          final Set<String> extractedTags = {};
-          for (var group in allUserGroups) {
-            extractedTags.addAll(group.tags);
-          }
-          final List<String> availableTags = extractedTags.toList()..sort();
+                // Extract all unique tags available in the user's groups
+                final Set<String> extractedTags = {};
+                for (var group in allUserGroups) {
+                  extractedTags.addAll(group.tags);
+                }
+                final List<String> availableTags = extractedTags.toList()
+                  ..sort();
 
-          // 3. Apply Local Logic
-          // A. Filter by Role (Author vs Member)
-          List<GroupModel> filteredByRole = allUserGroups.where((group) {
-            if (_roleFilter == GroupRoleFilter.all) return true;
-            if (_roleFilter == GroupRoleFilter.createdByMe) return group.authorId == user.uid;
-            if (_roleFilter == GroupRoleFilter.member) return group.authorId != user.uid; // Joined only
-            return true;
-          }).toList();
+                // Process (Filter & Sort)
+                final displayGroups = _processGroups(allUserGroups);
 
-          // B. Apply Search, Tags, and Sort using the Service helper
-          final displayGroups = _groupService.searchGroupsLocally(
-            allGroups: filteredByRole,
-            searchQuery: _searchQuery,
-            filterTags: _selectedTags,
-            sortBy: 'newest',
-          );
-
-          return Column(
-            children: [
-              _buildSearchAndFilterBar(availableTags),
-              _buildActiveFiltersList(),
-              Expanded(
-                child: displayGroups.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                  padding: const EdgeInsets.only(top: 10),
-                  itemCount: displayGroups.length,
-                  itemBuilder: (context, index) {
-                    return _buildGroupTile(displayGroups[index], user.uid);
-                  },
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+                return Column(
+                  children: [
+                    _buildSearchBar(availableTags),
+                    _buildActiveFiltersList(),
+                    Expanded(
+                      child: displayGroups.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.builder(
+                              padding: const EdgeInsets.only(
+                                top: 10,
+                                bottom: 80,
+                              ),
+                              itemCount: displayGroups.length,
+                              itemBuilder: (context, index) {
+                                return _buildGroupTile(displayGroups[index]);
+                              },
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
     );
   }
 
-  Widget _buildSearchAndFilterBar(List<String> availableTags) {
+  Widget _buildSearchBar(List<String> availableTags) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
@@ -283,14 +354,14 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+                contentPadding: EdgeInsets.zero,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
               ),
             ),
@@ -313,7 +384,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
   }
 
   Widget _buildActiveFiltersList() {
-    if (_selectedTags.isEmpty && _roleFilter == GroupRoleFilter.all && _sortOption == GroupSortOption.newest) {
+    if (_selectedTags.isEmpty && _roleFilter == GroupRoleFilter.all) {
       return const SizedBox.shrink();
     }
 
@@ -327,26 +398,33 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
               child: Chip(
-                label: Text(_roleFilter == GroupRoleFilter.createdByMe ? "Created by Me" : "Joined"),
+                label: Text(
+                  _roleFilter == GroupRoleFilter.createdByMe
+                      ? "Created by Me"
+                      : "Joined",
+                ),
                 backgroundColor: GeneralConstants.primaryColor.withOpacity(0.1),
-                onDeleted: () => setState(() => _roleFilter = GroupRoleFilter.all),
                 deleteIconColor: GeneralConstants.primaryColor,
+                onDeleted: () =>
+                    setState(() => _roleFilter = GroupRoleFilter.all),
               ),
             ),
-          ..._selectedTags.map((tag) => Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: Chip(
-              label: Text(tag),
-              onDeleted: () => setState(() => _selectedTags.remove(tag)),
+          ..._selectedTags.map(
+            (tag) => Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Chip(
+                label: Text(tag),
+                onDeleted: () => setState(() => _selectedTags.remove(tag)),
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildGroupTile(GroupModel group, String currentUid) {
-    final bool isAuthor = group.authorId == currentUid;
+  Widget _buildGroupTile(GroupModel group) {
+    final bool isAuthor = group.authorId == _currentUserId;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -355,63 +433,136 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: CircleAvatar(
-          radius: 28,
-          backgroundImage: NetworkImage(group.profilePic),
-          backgroundColor: Colors.grey[200],
-        ),
-        title: Text(
-          group.name,
-          style: GoogleFonts.lexend(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              '${group.userIds.length} Members • ${isAuthor ? "Owner" : "Member"}',
-              style: GoogleFonts.lexend(fontSize: 12, color: Colors.grey[600]),
-            ),
-            if (group.tags.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 4,
-                children: group.tags.take(3).map((tag) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            // TODO: Navigate to Group Details
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Group Icon
+                CircleAvatar(
+                  radius: 30,
+                  backgroundImage: NetworkImage(group.profilePic),
+                  backgroundColor: Colors.grey[200],
+                ),
+                const SizedBox(width: 16),
+
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        group.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.lexend(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: GeneralConstants.primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.people_outline,
+                            size: 14,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          // New: Using Member Count Getter
+                          Text(
+                            '${group.memberCount} Members',
+                            style: GoogleFonts.lexend(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (isAuthor)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: GeneralConstants.secondaryColor
+                                    .withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                "Owner",
+                                style: GoogleFonts.lexend(
+                                  fontSize: 10,
+                                  color: GeneralConstants.secondaryColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (group.tags.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 4,
+                          children: group.tags
+                              .take(3)
+                              .map(
+                                (tag) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: GeneralConstants.tertiaryColor
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    tag,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: GeneralConstants.tertiaryColor,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
+                    ],
                   ),
-                  child: Text(
-                    tag,
-                    style: TextStyle(fontSize: 10, color: Colors.blue.shade700),
+                ),
+
+                // Edit Button (Only for Authors)
+                if (isAuthor)
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: Colors.grey),
+                    onPressed: () => Navigator.push(
+                      context,
+                      PageTransition(
+                        type: PageTransitionType.fade,
+                        child: CreateEditGroupScreen(group: group),
+                      ),
+                    ),
                   ),
-                )).toList(),
-              ),
-            ]
-          ],
-        ),
-        trailing: isAuthor
-            ? IconButton(
-          icon: const Icon(Icons.edit_outlined, color: Colors.black54),
-          onPressed: () => Navigator.push(
-            context,
-            PageTransition(
-              type: PageTransitionType.fade,
-              child: CreateEditGroupScreen(group: group),
+              ],
             ),
           ),
-        )
-            : null, // Members cannot edit
+        ),
       ),
     );
   }
@@ -421,12 +572,24 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.group_off_outlined, size: 60, color: Colors.grey[400]),
+          Icon(Icons.group_off_outlined, size: 60, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            'No groups found matching your filters.',
-            style: GoogleFonts.lexend(color: Colors.grey[600]),
+            'No groups found.',
+            style: GoogleFonts.lexend(color: Colors.grey[600], fontSize: 16),
           ),
+          if (_roleFilter != GroupRoleFilter.all || _searchQuery.isNotEmpty)
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _roleFilter = GroupRoleFilter.all;
+                  _searchQuery = '';
+                  _searchController.clear();
+                  _selectedTags.clear();
+                });
+              },
+              child: const Text("Clear Filters"),
+            ),
         ],
       ),
     );

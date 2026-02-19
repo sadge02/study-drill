@@ -1,62 +1,77 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:study_drill/models/user/user_model.dart';
+import 'package:study_drill/utils/constants/collections/database_constants.dart';
+import 'package:study_drill/utils/constants/service/user_service_constants.dart';
+import 'package:study_drill/utils/constants/validator/authentication_validator_constants.dart';
 
 class UserService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  final FirebaseAuth _authentication = FirebaseAuth.instance;
+  final FirebaseFirestore _database = FirebaseFirestore.instance;
 
-  // Collection Constants
-  static const String _uCollection = 'users';
+  static const String _usersCollection = DatabaseConstants.usersCollection;
 
-  String? get currentUid => _auth.currentUser?.uid;
+  String? get currentUid => _authentication.currentUser?.uid;
 
-  /// 1. REAL-TIME USER DATA
+  CollectionReference<UserModel> get _usersReference => _database
+      .collection(_usersCollection)
+      .withConverter<UserModel>(
+        fromFirestore: (snapshot, _) => UserModel.fromJson(snapshot.data()!),
+        toFirestore: (user, _) => user.toJson(),
+      );
+
   Stream<UserModel?> get currentUserStream {
-    final uid = currentUid;
-    if (uid == null) return Stream.value(null);
-
-    return _db.collection(_uCollection).doc(uid).snapshots().map((snapshot) {
-      if (!snapshot.exists || snapshot.data() == null) return null;
-      return UserModel.fromJson(snapshot.data()!);
+    return _authentication.authStateChanges().switchMap((user) {
+      if (user == null) {
+        return Stream.value(null);
+      }
+      return _database
+          .collection(_usersCollection)
+          .doc(user.uid)
+          .snapshots()
+          .map((snapshot) {
+            if (!snapshot.exists || snapshot.data() == null) {
+              return null;
+            }
+            return UserModel.fromJson(snapshot.data()!);
+          });
     });
   }
 
-  /// 2. FETCH USER BY ID
   Future<UserModel?> getUserById(String uid) async {
     try {
-      final doc = await _db.collection(_uCollection).doc(uid).get();
-      return doc.exists ? UserModel.fromJson(doc.data()!) : null;
-    } catch (e) {
-      debugPrint('Error fetching user $uid: $e');
+      final doc = await _usersReference.doc(uid).get();
+      return doc.data();
+    } catch (_) {
       return null;
     }
   }
 
-  /// 3. SERVER-SIDE SEARCH (Case-Insensitive)
-  /// Uses the username_lowercase field for efficient "starts with" querying.
   Stream<List<UserModel>> searchUsers(String query) {
-    if (query.trim().isEmpty) return Stream.value([]);
+    if (query.isEmpty) {
+      return Stream.value([]);
+    }
 
-    final searchKey = query.trim().toLowerCase();
+    final searchKey = query.toLowerCase();
 
-    return _db
-        .collection(_uCollection)
+    return _database
+        .collection(_usersCollection)
+        .withConverter<UserModel>(
+          fromFirestore: (snapshot, _) => UserModel.fromJson(snapshot.data()!),
+          toFirestore: (user, _) => user.toJson(),
+        )
         .where('username_lowercase', isGreaterThanOrEqualTo: searchKey)
         .where('username_lowercase', isLessThanOrEqualTo: '$searchKey\uf8ff')
-        .limit(20) // Limit results for performance
+        .orderBy('username_lowercase')
+        .limit(UserServiceConstants.userLimit)
         .snapshots()
         .map(
-          (snap) =>
-              snap.docs.map((doc) => UserModel.fromJson(doc.data())).toList(),
+          (querySnapshot) =>
+              querySnapshot.docs.map((document) => document.data()).toList(),
         );
   }
 
-  /// 4. UPDATE USER PROFILE
-  /// Automatically manages username_lowercase and updatedAt.
   Future<void> updateUser({
     String? username,
     String? summary,
@@ -66,82 +81,126 @@ class UserService {
     UserTests? statistics,
   }) async {
     final uid = currentUid;
-    if (uid == null) throw Exception('User not logged in.');
+    if (uid == null) {
+      throw Exception(AuthenticationValidatorConstants.userNotLoggedInMessage);
+    }
 
     final updates = <String, dynamic>{
-      'updated_at': DateTime.now().toIso8601String(), // Always update timestamp
-      if (username != null) 'username': username.trim(),
-      if (username != null) 'username_lowercase': username.trim().toLowerCase(),
-      if (summary != null) 'summary': summary,
-      if (profilePic != null) 'profile_pic': profilePic,
+      'updated_at': DateTime.now().toIso8601String(),
+      'username': ?username,
+      if (username != null) 'username_lowercase': username.toLowerCase(),
+      'summary': ?summary,
+      'profile_pic': ?profilePic,
       if (privacySettings != null) 'privacy_settings': privacySettings.toJson(),
       if (settings != null) 'settings': settings.toJson(),
       if (statistics != null) 'statistics': statistics.toJson(),
     };
 
     try {
-      await _db.collection(_uCollection).doc(uid).update(updates);
-    } catch (e) {
-      debugPrint('Update Error: $e');
+      await _database.collection(_usersCollection).doc(uid).update(updates);
+    } catch (_) {
       rethrow;
     }
   }
 
-  /// 5. MANAGE FCM TOKEN (Notifications Outside App)
-  /// Should be called on app startup or when the token refreshes.
-  Future<void> updateFcmToken() async {
-    final uid = currentUid;
-    if (uid == null) return;
-
-    try {
-      String? token = await _fcm.getToken();
-      if (token != null) {
-        await _db.collection(_uCollection).doc(uid).update({
-          'fcm_token': token,
-          'updated_at': DateTime.now().toIso8601String(),
-        });
-      }
-    } catch (e) {
-      debugPrint('FCM Token Update Error: $e');
-    }
-  }
-
-  /// 6. FRIENDSHIP MANAGEMENT
-  /// Uses a WriteBatch to handle friend requests (Pending state).
   Future<void> sendFriendRequest(String targetUserId) async {
     final uid = currentUid;
-    if (uid == null) return;
+
+    if (uid == null || uid == targetUserId) {
+      return;
+    }
+
+    final batch = _database.batch();
 
     try {
-      // Add current user's ID to the target user's pending list
-      await _db.collection(_uCollection).doc(targetUserId).update({
+      batch.update(_database.collection(_usersCollection).doc(targetUserId), {
         'pending_friend_request_ids': FieldValue.arrayUnion([uid]),
       });
 
-      // Note: In a full system, you'd send a push notification here
-      // to the targetUserId using their fcm_token.
-    } catch (e) {
-      debugPrint('Friend Request Error: $e');
-    }
+      await batch.commit();
+    } catch (_) {}
   }
 
   Future<void> acceptFriendRequest(String friendId) async {
     final uid = currentUid;
-    if (uid == null) return;
+    if (uid == null) {
+      return;
+    }
 
-    final batch = _db.batch();
+    final batch = _database.batch();
 
-    // 1. Move friendId from pending to friend_ids for CURRENT user
-    batch.update(_db.collection(_uCollection).doc(uid), {
+    final currentUserDocument = _database.collection(_usersCollection).doc(uid);
+    final otherUserDocument = _database
+        .collection(_usersCollection)
+        .doc(friendId);
+
+    batch.update(currentUserDocument, {
       'pending_friend_request_ids': FieldValue.arrayRemove([friendId]),
       'friend_ids': FieldValue.arrayUnion([friendId]),
     });
-
-    // 2. Add current user to TARGET user's friend_ids
-    batch.update(_db.collection(_uCollection).doc(friendId), {
+    batch.update(otherUserDocument, {
       'friend_ids': FieldValue.arrayUnion([uid]),
+      'sent_friend_request_ids': FieldValue.arrayRemove([uid]),
     });
 
     await batch.commit();
+  }
+
+  Future<void> deleteUserAccount() async {
+    final uid = currentUid;
+
+    if (uid == null) {
+      throw Exception(AuthenticationValidatorConstants.userNotLoggedInMessage);
+    }
+
+    final ownedGroupsQuery = await _database
+        .collection(DatabaseConstants.groupsCollection)
+        .where('author_id', isEqualTo: uid)
+        .get();
+
+    if (ownedGroupsQuery.docs.isNotEmpty) {
+      ownedGroupsQuery.docs
+          .map((document) => document.data()['name'] as String)
+          .toList();
+
+      throw Exception(
+        AuthenticationValidatorConstants.userDeleteAccountConditionsMessage,
+      );
+    }
+
+    final userDocument = await _usersReference.doc(uid).get();
+    final userData = userDocument.data();
+
+    if (userData == null) {
+      return;
+    }
+
+    final batch = _database.batch();
+
+    final usernameReference = _database
+        .collection(DatabaseConstants.usernamesCollection)
+        .doc(userData.usernameLowercase);
+    batch.delete(usernameReference);
+
+    for (String groupId in userData.groupIds) {
+      final groupReference = _database
+          .collection(DatabaseConstants.groupsCollection)
+          .doc(groupId);
+      batch.update(groupReference, {
+        'user_ids': FieldValue.arrayRemove([uid]),
+        'admin_ids': FieldValue.arrayRemove([uid]),
+        'editor_user_ids': FieldValue.arrayRemove([uid]),
+      });
+    }
+
+    batch.delete(_database.collection(_usersCollection).doc(uid));
+
+    try {
+      await batch.commit();
+
+      await _authentication.currentUser?.delete();
+    } catch (_) {
+      rethrow;
+    }
   }
 }

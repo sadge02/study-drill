@@ -1,22 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:study_drill/models/group/group_model.dart';
+import 'package:study_drill/utils/constants/collections/database_constants.dart';
+import 'package:study_drill/utils/constants/validator/authentication_validator_constants.dart';
 
 class GroupService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  final FirebaseAuth _authentication = FirebaseAuth.instance;
+  final FirebaseFirestore _database = FirebaseFirestore.instance;
 
-  // Collection Constants
-  static const String _gCollection = 'groups';
-  static const String _uCollection = 'users';
+  static const String _groupsCollection = DatabaseConstants.groupsCollection;
+  static const String _usersCollection = DatabaseConstants.usersCollection;
 
-  String? get currentUid => _auth.currentUser?.uid;
+  String? get currentUid => _authentication.currentUser?.uid;
 
-  /// 1. CREATE GROUP
-  /// Uses an atomic batch to create the group and update the creator's user document.
   Future<String?> createGroup({
     required String name,
     required String summary,
@@ -27,15 +23,18 @@ class GroupService {
   }) async {
     try {
       final uid = currentUid;
-      if (uid == null) return 'You must be logged in.';
+      if (uid == null) {
+        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+      }
 
-      final groupDoc = _db.collection(_gCollection).doc();
-      final groupId = groupDoc.id;
+      final groupDocument = _database.collection(_groupsCollection).doc();
+
+      final groupId = groupDocument.id;
 
       final group = GroupModel(
         id: groupId,
         name: name.trim(),
-        nameLowercase: name.trim().toLowerCase(), // Enhancement: For search
+        nameLowercase: name.trim().toLowerCase(),
         summary: summary,
         profilePic: profilePic,
         authorId: uid,
@@ -46,147 +45,283 @@ class GroupService {
         adminIds: [uid],
         editorUserIds: [uid],
         createdAt: DateTime.now(),
-        updatedAt: DateTime.now(), // Enhancement: Timestamp
+        updatedAt: DateTime.now(),
       );
 
-      final WriteBatch batch = _db.batch();
-      batch.set(groupDoc, group.toJson());
-      batch.update(_db.collection(_uCollection).doc(uid), {
+      final WriteBatch batch = _database.batch();
+
+      batch.set(groupDocument, group.toJson());
+
+      batch.update(_database.collection(_usersCollection).doc(uid), {
         'group_ids': FieldValue.arrayUnion([groupId]),
       });
 
       await batch.commit();
 
-      // Subscribe to group topic for notifications outside the app
-      await _fcm.subscribeToTopic('group_$groupId');
-
       return null;
-    } catch (e) {
-      debugPrint('Create Group Error: $e');
-      return 'Failed to create group.';
+    } catch (_) {
+      return AuthenticationValidatorConstants.groupCreateFailedMessage;
     }
   }
 
-  /// 2. JOIN GROUP
-  /// Handles public auto-join vs private join requests.
+  Future<GroupModel?> getGroupById(String groupId) async {
+    try {
+      final document = await _database
+          .collection(_groupsCollection)
+          .doc(groupId)
+          .get();
+
+      if (!document.exists || document.data() == null) {
+        return null;
+      }
+
+      return GroupModel.fromJson(document.data()!);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<String?> joinGroup(GroupModel group) async {
     try {
       final uid = currentUid;
-      if (uid == null) return 'You must be logged in.';
 
-      if (group.userIds.contains(uid)) return 'Already a member.';
-      if (group.pendingUserRequestIds.contains(uid))
-        return 'Request already pending.';
+      if (uid == null) {
+        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+      }
 
-      final groupRef = _db.collection(_gCollection).doc(group.id);
+      if (group.userIds.contains(uid)) {
+        return AuthenticationValidatorConstants.userAlreadyAMemberMessage;
+      }
+      if (group.pendingUserRequestIds.contains(uid)) {
+        return AuthenticationValidatorConstants.userAlreadyRequestedMessage;
+      }
+
+      final groupReference = _database
+          .collection(_groupsCollection)
+          .doc(group.id);
+      final userReference = _database.collection(_usersCollection).doc(uid);
+
+      final batch = _database.batch();
 
       if (group.visibility == GroupVisibility.public) {
-        final batch = _db.batch();
-
-        batch.update(groupRef, {
+        batch.update(groupReference, {
           'user_ids': FieldValue.arrayUnion([uid]),
           if (group.settings.autoAddAsEditor)
             'editor_user_ids': FieldValue.arrayUnion([uid]),
-          'updated_at': DateTime.now().toIso8601String(),
+          'updated_at': FieldValue.serverTimestamp(),
         });
 
-        batch.update(_db.collection(_uCollection).doc(uid), {
+        batch.update(userReference, {
           'group_ids': FieldValue.arrayUnion([group.id]),
         });
 
         await batch.commit();
-        await _fcm.subscribeToTopic('group_${group.id}');
-        return 'Successfully joined ${group.name}!';
+
+        return '${AuthenticationValidatorConstants.userSuccessfullyJoinedMessage} ${group.name}!';
       } else {
-        // Private Group: Send request
-        await groupRef.update({
+        batch.update(groupReference, {
           'pending_user_ids': FieldValue.arrayUnion([uid]),
         });
-        return 'Join request sent.';
+
+        await batch.commit();
+
+        return AuthenticationValidatorConstants.userJoinRequestMessage;
       }
-    } catch (e) {
-      return 'Join failed: $e';
+    } catch (exception) {
+      return '${AuthenticationValidatorConstants.userUnsuccessfullyJoinedMessage}: $exception';
     }
   }
 
-  /// 3. LEAVE GROUP
   Future<String?> leaveGroup(String groupId) async {
     try {
       final uid = currentUid;
-      if (uid == null) return 'Login required.';
 
-      final batch = _db.batch();
-      batch.update(_db.collection(_gCollection).doc(groupId), {
-        'user_ids': FieldValue.arrayRemove([uid]),
-        'admin_ids': FieldValue.arrayRemove([uid]),
-        'editor_user_ids': FieldValue.arrayRemove([uid]),
-        'pending_user_ids': FieldValue.arrayRemove([uid]),
+      if (uid == null) {
+        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+      }
+
+      return await _database.runTransaction((transaction) async {
+        final groupReference = _database
+            .collection(_groupsCollection)
+            .doc(groupId);
+        final userReference = _database.collection(_usersCollection).doc(uid);
+
+        final groupSnapshot = await transaction.get(groupReference);
+
+        if (!groupSnapshot.exists) {
+          return AuthenticationValidatorConstants.groupDoesNotExist;
+        }
+
+        final data = groupSnapshot.data();
+
+        final authorId = data?['author_id'];
+
+        final userIds = List<String>.from((data?['user_ids'] as List?) ?? []);
+
+        if (uid == authorId) {
+          if (userIds.length > 1) {
+            return AuthenticationValidatorConstants.groupOwnerLeaveMessage;
+          } else {
+            transaction.delete(groupReference);
+          }
+        } else {
+          transaction.update(groupReference, {
+            'user_ids': FieldValue.arrayRemove([uid]),
+            'admin_ids': FieldValue.arrayRemove([uid]),
+            'editor_user_ids': FieldValue.arrayRemove([uid]), //
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+        }
+
+        transaction.update(userReference, {
+          'group_ids': FieldValue.arrayRemove([groupId]),
+        });
+
+        return AuthenticationValidatorConstants.groupLeaveSuccessMessage;
       });
-
-      batch.update(_db.collection(_uCollection).doc(uid), {
-        'group_ids': FieldValue.arrayRemove([groupId]),
-      });
-
-      await batch.commit();
-      await _fcm.unsubscribeFromTopic('group_$groupId');
-      return null;
-    } catch (e) {
-      return 'Leave failed: $e';
+    } catch (_) {
+      return AuthenticationValidatorConstants.groupLeaveFailedMessage;
     }
   }
 
-  /// 4. EFFICIENT DATABASE SEARCH
-  /// Uses the name_lowercase field to perform starts-with queries on the server.
+  Future<String?> transferOwnership(String groupId, String newAuthorId) async {
+    try {
+      final uid = currentUid;
+
+      if (uid == null) {
+        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+      }
+
+      return await _database.runTransaction((transaction) async {
+        final groupReference = _database
+            .collection(_groupsCollection)
+            .doc(groupId);
+
+        final groupSnapshot = await transaction.get(groupReference);
+
+        if (!groupSnapshot.exists) {
+          return AuthenticationValidatorConstants.groupDoesNotExist;
+        }
+
+        final data = groupSnapshot.data();
+
+        final currentAuthorId = data?['author_id'];
+
+        final userIds = List<String>.from((data?['user_ids'] as List?) ?? []);
+
+        if (uid != currentAuthorId) {
+          return AuthenticationValidatorConstants
+              .groupNonAuthorTransferOwnershipMessage;
+        }
+
+        if (!userIds.contains(newAuthorId)) {
+          return AuthenticationValidatorConstants
+              .groupNewOwnerMustBeMemberMessage;
+        }
+
+        transaction.update(groupReference, {
+          'author_id': newAuthorId,
+          'admin_ids': FieldValue.arrayUnion([newAuthorId]),
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+
+        return AuthenticationValidatorConstants
+            .groupTransferOwnershipSuccessMessage;
+      });
+    } catch (_) {
+      return AuthenticationValidatorConstants
+          .groupTransferOwnershipFailedMessage;
+    }
+  }
+
+  Future<String?> deleteGroup(String groupId) async {
+    try {
+      final uid = currentUid;
+      if (uid == null) return "User not logged in";
+
+      return await _database.runTransaction((transaction) async {
+        final groupRef = _database.collection(_groupsCollection).doc(groupId);
+        final groupSnap = await transaction.get(groupRef);
+
+        if (!groupSnap.exists) return "Group does not exist";
+
+        final data = groupSnap.data();
+        final authorId = data?['author_id']; //
+        final memberIds = List<String>.from(data?['user_ids'] ?? []); //
+
+        // 1. Verify that only the author can delete the group
+        if (authorId != uid) {
+          return "Only the group owner can delete this group.";
+        }
+
+        // 2. Remove the groupId from every member's user document
+        for (String memberId in memberIds) {
+          final userRef = _database.collection(_usersCollection).doc(memberId);
+          transaction.update(userRef, {
+            'group_ids': FieldValue.arrayRemove([groupId]), //
+          });
+        }
+
+        // 3. Delete the group document itself
+        transaction.delete(groupRef);
+
+        return "Group and all member references deleted successfully.";
+      });
+    } catch (e) {
+      return "Error deleting group: $e";
+    }
+  }
+
   Stream<List<GroupModel>> searchGroupsOnServer(String query) {
-    if (query.trim().isEmpty) return Stream.value([]);
+    if (query.trim().isEmpty) {
+      return Stream.value([]);
+    }
 
     final searchKey = query.trim().toLowerCase();
 
-    return _db
-        .collection(_gCollection)
+    return _database
+        .collection(_groupsCollection)
         .where('visibility', isEqualTo: 'public')
         .where('name_lowercase', isGreaterThanOrEqualTo: searchKey)
         .where('name_lowercase', isLessThanOrEqualTo: '$searchKey\uf8ff')
         .snapshots()
         .map(
-          (snap) =>
-              snap.docs.map((doc) => GroupModel.fromJson(doc.data())).toList(),
+          (snap) => snap.docs
+              .map((document) => GroupModel.fromJson(document.data()))
+              .toList(),
         );
   }
 
-  /// 5. LOCAL FILTER & SORT
-  /// This remains for filtering data already downloaded to the phone.
   List<GroupModel> filterGroupsLocally({
     required List<GroupModel> groups,
     String? query,
-    String sortBy = 'newest',
+    String sortBy = "newest",
   }) {
     List<GroupModel> filtered = List.from(groups);
 
     if (query != null && query.isNotEmpty) {
-      final q = query.toLowerCase();
-      filtered = filtered.where((g) => g.nameLowercase.contains(q)).toList();
+      filtered = filtered
+          .where((group) => group.nameLowercase.contains(query.toLowerCase()))
+          .toList();
     }
 
     switch (sortBy) {
-      case 'popular':
+      case "popular":
         filtered.sort((a, b) => b.memberCount.compareTo(a.memberCount));
         break;
-      case 'alpha':
+      case "alpha":
         filtered.sort(
           (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
         );
         break;
-      default: // newest
+      default:
         filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
     return filtered;
   }
 
-  // --- STREAMS ---
-
-  Stream<GroupModel?> getGroupStream(String groupId) => _db
-      .collection(_gCollection)
+  Stream<GroupModel?> getGroupStream(String groupId) => _database
+      .collection(_groupsCollection)
       .doc(groupId)
       .snapshots()
       .map(
@@ -196,16 +331,54 @@ class GroupService {
 
   Stream<List<GroupModel>> getUserGroupsStream() {
     final uid = currentUid;
-    if (uid == null) return Stream.value([]);
+    if (uid == null) {
+      return Stream.value([]);
+    }
 
-    return _db
-        .collection(_gCollection)
+    return _database
+        .collection(_groupsCollection)
         .where('user_ids', arrayContains: uid)
         .orderBy('updated_at', descending: true)
         .snapshots()
         .map(
-          (snap) =>
-              snap.docs.map((doc) => GroupModel.fromJson(doc.data())).toList(),
+          (snap) => snap.docs
+              .map((document) => GroupModel.fromJson(document.data()))
+              .toList(),
         );
+  }
+
+  Stream<List<GroupModel>> getAllPublicGroupsStream() {
+    return _database
+        .collection(_groupsCollection)
+        .where('visibility', isEqualTo: 'public')
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return GroupModel.fromJson(doc.data());
+          }).toList();
+        });
+  }
+
+  Future<String?> updateGroup(GroupModel group) async {
+    try {
+      final uid = currentUid;
+      if (uid == null) return 'Login required.';
+
+      // Check if the user is an admin or the author before allowing update
+      // (Optional: You can add a check here or handle it in the UI)
+
+      final Map<String, dynamic> data = group.toJson();
+
+      // Enhancement: Ensure metadata is updated even if the model passed
+      // doesn't have the latest timestamps.
+      data['updated_at'] = DateTime.now().toIso8601String();
+      data['name_lowercase'] = group.name.trim().toLowerCase();
+
+      await _database.collection(_groupsCollection).doc(group.id).update(data);
+      return null;
+    } catch (e) {
+      return 'Update failed: $e';
+    }
   }
 }
