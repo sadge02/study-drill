@@ -1,1 +1,1 @@
-enum SortingType { newest, popular, alphabet }
+enum GroupSortOption { newest, popular, alphabetical }

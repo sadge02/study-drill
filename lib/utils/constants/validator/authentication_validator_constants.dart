@@ -87,6 +87,15 @@ class AuthenticationValidatorConstants {
   static const String groupNewOwnerMustBeMemberMessage =
       'The new owner must be a member of the group.';
 
+  static const String groupNonOwnerDeleteMessage =
+      'Only the group owner can delete the group.';
+  static const String groupDeleteSuccessMessage = 'Group deleted successfully.';
+  static const String groupDeleteFailedMessage = 'Failed to delete the group.';
+  static const String groupUpdateNotAuthorMessage =
+      'You don\'t have permission to update this group.';
+  static const String groupUpdateSuccessMessage = 'Group updated successfully.';
+  static const String groupUpdateFailedMessage = 'Failed to update the group.';
+
   /// FIREBASE EXCEPTIONS ///
   static const String weakPasswordException = 'weak-password';
   static const String emailAlreadyInUseException = 'email-already-in-use';

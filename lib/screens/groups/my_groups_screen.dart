@@ -5,14 +5,12 @@ import 'package:page_transition/page_transition.dart';
 import 'package:study_drill/models/group/group_model.dart';
 import 'package:study_drill/service/group/group_service.dart';
 import 'package:study_drill/utils/constants/general_constants.dart';
+import 'package:study_drill/utils/enums/sorting_type_enum.dart'; // Ensure this points to your enum file
 
 import 'create_edit_group_screen.dart';
 
-// Enum for the "My Role" filter
+// Added this enum so the file compiles. Move it to a separate file if needed.
 enum GroupRoleFilter { all, createdByMe, member }
-
-// Enum for Sorting (Must match the UI labels)
-enum GroupSortOption { newest, oldest, mostMembers, alphabetical }
 
 class MyGroupsScreen extends StatefulWidget {
   const MyGroupsScreen({super.key});
@@ -53,7 +51,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
       return true;
     }).toList();
 
-    // 2. Filter by Search Query (Using new nameLowercase field)
+    // 2. Filter by Search Query
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       result = result.where((group) {
@@ -68,18 +66,16 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
       }).toList();
     }
 
-    // 4. Sort
+    // 4. Sort (Updated to match your sorting_type_enum.dart)
     switch (_sortOption) {
-      case GroupSortOption.newest:
+      case GroupSortOption.newest: //
         result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
-      case GroupSortOption.oldest:
-        result.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      case GroupSortOption.popular: //
+        // Assuming 'popular' refers to member count. Adjust if you have a different popularity metric.
+        result.sort((a, b) => (b.userIds.length).compareTo(a.userIds.length));
         break;
-      case GroupSortOption.mostMembers:
-        result.sort((a, b) => b.memberCount.compareTo(a.memberCount));
-        break;
-      case GroupSortOption.alphabetical:
+      case GroupSortOption.alphabetical: //
         result.sort((a, b) => a.nameLowercase.compareTo(b.nameLowercase));
         break;
     }
@@ -154,7 +150,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
 
                   const SizedBox(height: 20),
 
-                  // 2. Sort Options
+                  // 2. Sort Options (Updated to match your Enum)
                   _buildSectionTitle('Sort By'),
                   const SizedBox(height: 10),
                   Wrap(
@@ -250,15 +246,14 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
     );
   }
 
+  // Updated to match your Enum
   String _getSortLabel(GroupSortOption option) {
     switch (option) {
-      case GroupSortOption.newest:
+      case GroupSortOption.newest: //
         return 'Newest';
-      case GroupSortOption.oldest:
-        return 'Oldest';
-      case GroupSortOption.mostMembers:
+      case GroupSortOption.popular: //
         return 'Popular';
-      case GroupSortOption.alphabetical:
+      case GroupSortOption.alphabetical: //
         return 'A-Z';
     }
   }
@@ -483,9 +478,9 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                             color: Colors.grey[600],
                           ),
                           const SizedBox(width: 4),
-                          // New: Using Member Count Getter
+                          // Updated: Safely grabbing userIds length as memberCount
                           Text(
-                            '${group.memberCount} Members',
+                            '${group.userIds.length} Members',
                             style: GoogleFonts.lexend(
                               fontSize: 12,
                               color: Colors.grey[600],

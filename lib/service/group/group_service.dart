@@ -4,6 +4,8 @@ import 'package:study_drill/models/group/group_model.dart';
 import 'package:study_drill/utils/constants/collections/database_constants.dart';
 import 'package:study_drill/utils/constants/validator/authentication_validator_constants.dart';
 
+import '../../utils/enums/sorting_type_enum.dart';
+
 class GroupService {
   final FirebaseAuth _authentication = FirebaseAuth.instance;
   final FirebaseFirestore _database = FirebaseFirestore.instance;
@@ -237,100 +239,51 @@ class GroupService {
   Future<String?> deleteGroup(String groupId) async {
     try {
       final uid = currentUid;
-      if (uid == null) return "User not logged in";
+      if (uid == null) {
+        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+      }
 
       return await _database.runTransaction((transaction) async {
-        final groupRef = _database.collection(_groupsCollection).doc(groupId);
-        final groupSnap = await transaction.get(groupRef);
+        final groupReference = _database
+            .collection(_groupsCollection)
+            .doc(groupId);
+        final groupSnapshot = await transaction.get(groupReference);
 
-        if (!groupSnap.exists) return "Group does not exist";
-
-        final data = groupSnap.data();
-        final authorId = data?['author_id']; //
-        final memberIds = List<String>.from(data?['user_ids'] ?? []); //
-
-        // 1. Verify that only the author can delete the group
-        if (authorId != uid) {
-          return "Only the group owner can delete this group.";
+        if (!groupSnapshot.exists) {
+          return AuthenticationValidatorConstants.groupDoesNotExist;
         }
 
-        // 2. Remove the groupId from every member's user document
+        final data = groupSnapshot.data();
+
+        final authorId = data?['author_id'];
+
+        final memberIds = List<String>.from((data?['user_ids'] as List?) ?? []);
+
+        if (authorId != uid) {
+          return AuthenticationValidatorConstants.groupNonOwnerDeleteMessage;
+        }
+
         for (String memberId in memberIds) {
-          final userRef = _database.collection(_usersCollection).doc(memberId);
-          transaction.update(userRef, {
-            'group_ids': FieldValue.arrayRemove([groupId]), //
+          final userReference = _database
+              .collection(_usersCollection)
+              .doc(memberId);
+          transaction.update(userReference, {
+            'group_ids': FieldValue.arrayRemove([groupId]),
           });
         }
 
-        // 3. Delete the group document itself
-        transaction.delete(groupRef);
+        transaction.delete(groupReference);
 
-        return "Group and all member references deleted successfully.";
+        return AuthenticationValidatorConstants.groupDeleteSuccessMessage;
       });
-    } catch (e) {
-      return "Error deleting group: $e";
+    } catch (_) {
+      return AuthenticationValidatorConstants.groupDeleteFailedMessage;
     }
   }
-
-  Stream<List<GroupModel>> searchGroupsOnServer(String query) {
-    if (query.trim().isEmpty) {
-      return Stream.value([]);
-    }
-
-    final searchKey = query.trim().toLowerCase();
-
-    return _database
-        .collection(_groupsCollection)
-        .where('visibility', isEqualTo: 'public')
-        .where('name_lowercase', isGreaterThanOrEqualTo: searchKey)
-        .where('name_lowercase', isLessThanOrEqualTo: '$searchKey\uf8ff')
-        .snapshots()
-        .map(
-          (snap) => snap.docs
-              .map((document) => GroupModel.fromJson(document.data()))
-              .toList(),
-        );
-  }
-
-  List<GroupModel> filterGroupsLocally({
-    required List<GroupModel> groups,
-    String? query,
-    String sortBy = "newest",
-  }) {
-    List<GroupModel> filtered = List.from(groups);
-
-    if (query != null && query.isNotEmpty) {
-      filtered = filtered
-          .where((group) => group.nameLowercase.contains(query.toLowerCase()))
-          .toList();
-    }
-
-    switch (sortBy) {
-      case "popular":
-        filtered.sort((a, b) => b.memberCount.compareTo(a.memberCount));
-        break;
-      case "alpha":
-        filtered.sort(
-          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-        );
-        break;
-      default:
-        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    }
-    return filtered;
-  }
-
-  Stream<GroupModel?> getGroupStream(String groupId) => _database
-      .collection(_groupsCollection)
-      .doc(groupId)
-      .snapshots()
-      .map(
-        (snapshot) =>
-            snapshot.exists ? GroupModel.fromJson(snapshot.data()!) : null,
-      );
 
   Stream<List<GroupModel>> getUserGroupsStream() {
     final uid = currentUid;
+
     if (uid == null) {
       return Stream.value([]);
     }
@@ -338,47 +291,101 @@ class GroupService {
     return _database
         .collection(_groupsCollection)
         .where('user_ids', arrayContains: uid)
-        .orderBy('updated_at', descending: true)
         .snapshots()
         .map(
-          (snap) => snap.docs
-              .map((document) => GroupModel.fromJson(document.data()))
+          (snapshot) => snapshot.docs
+              .map((doc) => GroupModel.fromJson(doc.data()))
               .toList(),
         );
   }
 
-  Stream<List<GroupModel>> getAllPublicGroupsStream() {
+  Stream<List<GroupModel>> getAllGroupsStream() {
     return _database
         .collection(_groupsCollection)
-        .where('visibility', isEqualTo: 'public')
-        .orderBy('created_at', descending: true)
         .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            return GroupModel.fromJson(doc.data());
-          }).toList();
-        });
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) {
+                try {
+                  return GroupModel.fromJson(doc.data());
+                } catch (_) {
+                  return null;
+                }
+              })
+              .whereType<GroupModel>()
+              .toList(),
+        );
+  }
+
+  List<GroupModel> filterGroupsLocally({
+    required List<GroupModel> groups,
+    String? query,
+    GroupVisibility? visibilityFilter,
+    GroupSortOption sortBy = GroupSortOption.newest,
+  }) {
+    List<GroupModel> filtered = List.from(groups);
+
+    if (visibilityFilter != null) {
+      filtered = filtered
+          .where((group) => group.visibility == visibilityFilter)
+          .toList();
+    }
+
+    if (query != null && query.trim().isNotEmpty) {
+      final search = query.trim().toLowerCase();
+      filtered = filtered
+          .where((group) => group.nameLowercase.contains(search))
+          .toList();
+    }
+
+    switch (sortBy) {
+      case GroupSortOption.popular:
+        filtered.sort((a, b) => b.userIds.length.compareTo(a.userIds.length));
+        break;
+      case GroupSortOption.alphabetical:
+        filtered.sort((a, b) => a.nameLowercase.compareTo(b.nameLowercase));
+        break;
+      case GroupSortOption.newest:
+        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+    }
+
+    return filtered;
   }
 
   Future<String?> updateGroup(GroupModel group) async {
     try {
       final uid = currentUid;
-      if (uid == null) return 'Login required.';
 
-      // Check if the user is an admin or the author before allowing update
-      // (Optional: You can add a check here or handle it in the UI)
+      if (uid == null) {
+        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+      }
 
-      final Map<String, dynamic> data = group.toJson();
+      if (!group.adminIds.contains(uid) && group.authorId != uid) {
+        return AuthenticationValidatorConstants.groupUpdateNotAuthorMessage;
+      }
 
-      // Enhancement: Ensure metadata is updated even if the model passed
-      // doesn't have the latest timestamps.
-      data['updated_at'] = DateTime.now().toIso8601String();
-      data['name_lowercase'] = group.name.trim().toLowerCase();
+      final Map<String, dynamic> updateData = group.toJson();
 
-      await _database.collection(_groupsCollection).doc(group.id).update(data);
-      return null;
-    } catch (e) {
-      return 'Update failed: $e';
+      updateData.remove('user_ids');
+      updateData.remove('admin_ids');
+      updateData.remove('editor_user_ids');
+      updateData.remove('pending_user_request_ids');
+      updateData.remove('test_ids');
+      updateData.remove('flashcard_ids');
+      updateData.remove('match_game_ids');
+
+      updateData['updated_at'] = FieldValue.serverTimestamp();
+      updateData['name_lowercase'] = group.name.trim().toLowerCase();
+
+      await _database
+          .collection(_groupsCollection)
+          .doc(group.id)
+          .update(updateData);
+
+      return AuthenticationValidatorConstants.groupUpdateSuccessMessage;
+    } catch (_) {
+      return AuthenticationValidatorConstants.groupUpdateFailedMessage;
     }
   }
 }
