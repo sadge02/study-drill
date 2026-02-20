@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:page_transition/page_transition.dart';
-import 'package:study_drill/utils/constants/authentication/login_screen/login_screen_constants.dart';
+import 'package:study_drill/utils/constants/authentication/screens/login_screen_constants.dart';
 import 'package:study_drill/utils/constants/general_constants.dart';
+import 'package:study_drill/utils/enums/authentication_input_type_enum.dart';
 import 'package:study_drill/utils/utils.dart';
 import 'package:study_drill/widgets/authentication/authentication_input_field.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../../service/authentication/authentication_service.dart';
+import '../navigation/home_screen.dart';
 import 'registration_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -45,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
           showTopSnackBar(
             Overlay.of(context),
             displayDuration: const Duration(
-              milliseconds: GeneralConstants.notificationDuration,
+              milliseconds: GeneralConstants.notificationDurationMs,
             ),
             snackBarPosition: SnackBarPosition.bottom,
             CustomSnackBar.error(message: loggedUser),
@@ -54,10 +56,21 @@ class _LoginScreenState extends State<LoginScreen> {
           showTopSnackBar(
             Overlay.of(context),
             displayDuration: const Duration(
-              milliseconds: GeneralConstants.notificationDuration,
+              milliseconds: GeneralConstants.notificationDurationMs,
             ),
             snackBarPosition: SnackBarPosition.bottom,
-            const CustomSnackBar.success(message: 'Login successful'),
+            const CustomSnackBar.success(message: 'Login Successful'),
+          );
+
+          Navigator.of(context).pushAndRemoveUntil<void>(
+            PageTransition<void>(
+              type: PageTransitionType.fade,
+              child: HomeScreen(),
+              duration: const Duration(
+                milliseconds: GeneralConstants.transitionDurationMs,
+              ),
+            ),
+            (route) => false,
           );
         }
       }
@@ -70,11 +83,11 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: GeneralConstants.backgroundColor,
       appBar: AppBar(
         backgroundColor: GeneralConstants.backgroundColor,
-        elevation: GeneralConstants.appbarElevation,
-        toolbarHeight: GeneralConstants.appbarHeight,
+        elevation: GeneralConstants.appBarElevation,
+        toolbarHeight: GeneralConstants.appBarHeight,
         centerTitle: true,
         title: Text(
-          LoginScreenConstants.title,
+          LoginScreenConstants.appBarTitle,
           textAlign: TextAlign.center,
           style: GoogleFonts.lexend(
             fontSize: Utils.isMobile(context)
@@ -105,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailController,
                     hint: 'Email',
                     icon: Icons.email_outlined,
-                    isEmail: true,
+                    type: AuthenticationInputType.email,
                   ),
 
                   /// PASSWORD INPUT
@@ -113,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _passwordController,
                     hint: 'Password',
                     icon: Icons.lock_outline,
-                    isPassword: true,
+                    type: AuthenticationInputType.password,
                     obscureText: _isPasswordObscure,
                     toggleVisibility: () => setState(
                       () => _isPasswordObscure = !_isPasswordObscure,
@@ -157,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         PageTransition<void>(
                           type: PageTransitionType.fade,
                           duration: const Duration(
-                            milliseconds: GeneralConstants.transitionDuration,
+                            milliseconds: GeneralConstants.transitionDurationMs,
                           ),
                           child: const RegistrationScreen(),
                           isIos: true,

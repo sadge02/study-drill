@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:study_drill/utils/constants/authentication/registration_screen/registration_screen_constants.dart';
+import 'package:study_drill/utils/constants/authentication/screens/registration_screen_constants.dart';
 import 'package:study_drill/utils/constants/general_constants.dart';
+import 'package:study_drill/utils/enums/authentication_input_type_enum.dart';
 import 'package:study_drill/utils/utils.dart';
 import 'package:study_drill/widgets/authentication/authentication_input_field.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../../service/authentication/authentication_service.dart';
+import '../navigation/home_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -50,7 +52,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         username: _userController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
-        profilePicUrl: _profilePicUrl,
+        profilePicUrl: _profilePicUrl.trim(),
       );
 
       if (mounted) {
@@ -59,17 +61,21 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           showTopSnackBar(
             Overlay.of(context),
             displayDuration: const Duration(
-              milliseconds: GeneralConstants.notificationDuration,
+              milliseconds: GeneralConstants.notificationDurationMs,
             ),
             snackBarPosition: SnackBarPosition.bottom,
             const CustomSnackBar.success(message: 'Registration successful.'),
           );
-          Navigator.pop(context);
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute<void>(builder: (context) => HomeScreen()),
+            (route) => false,
+          );
         } else {
           showTopSnackBar(
             Overlay.of(context),
             displayDuration: const Duration(
-              milliseconds: GeneralConstants.notificationDuration,
+              milliseconds: GeneralConstants.notificationDurationMs,
             ),
             snackBarPosition: SnackBarPosition.bottom,
             CustomSnackBar.error(message: registeredUser),
@@ -85,12 +91,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       backgroundColor: GeneralConstants.backgroundColor,
       appBar: AppBar(
         backgroundColor: GeneralConstants.backgroundColor,
-        elevation: GeneralConstants.appbarElevation,
-        toolbarHeight: GeneralConstants.appbarHeight,
+        elevation: GeneralConstants.appBarElevation,
+        toolbarHeight: GeneralConstants.appBarHeight,
         iconTheme: const IconThemeData(color: GeneralConstants.primaryColor),
         centerTitle: true,
         title: Text(
-          RegistrationScreenConstants.title,
+          RegistrationScreenConstants.appBarTitle,
           textAlign: TextAlign.center,
           style: GoogleFonts.lexend(
             fontSize: Utils.isMobile(context)
@@ -146,7 +152,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     controller: _emailController,
                     hint: 'Email',
                     icon: Icons.email_outlined,
-                    isEmail: true,
+                    type: AuthenticationInputType.email,
                   ),
 
                   /// PROFILE PIC INPUT
@@ -154,7 +160,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     controller: _avatarLinkController,
                     hint: 'Profile Picture Link (Optional)',
                     icon: Icons.link,
-                    isProfilePicLink: true,
+                    type: AuthenticationInputType.profilePic,
                     onChanged: (_) => setState(() {}),
                   ),
 
@@ -163,7 +169,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     controller: _passwordController,
                     hint: 'Password',
                     icon: Icons.lock_outline,
-                    isPassword: true,
+                    type: AuthenticationInputType.password,
                     obscureText: _isPasswordObscure,
                     toggleVisibility: () => setState(
                       () => _isPasswordObscure = !_isPasswordObscure,
@@ -175,8 +181,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     controller: _confirmPasswordController,
                     hint: 'Confirm Password',
                     icon: Icons.check_circle_outline,
-                    isPassword: true,
-                    isConfirmPassword: true,
+                    type: AuthenticationInputType.confirmPassword,
                     compareController: _passwordController,
                     obscureText: _isConfirmPasswordObscure,
                     toggleVisibility: () => setState(

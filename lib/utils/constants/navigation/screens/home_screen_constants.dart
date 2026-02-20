@@ -1,4 +1,4 @@
 class HomeScreenConstants {
-  /// WELCOME MESSAGE ///
+  /// TEXT ///
   static const int welcomeMessageTitleMaxLines = 1;
 }

@@ -1,6 +1,6 @@
 class RegistrationScreenConstants {
   /// APP BAR ///
-  static const String title = 'Create Account';
+  static const String appBarTitle = 'Create Account';
 
   /// PROFILE PICTURE ///
   static const double profilePicSizeMobile = 25.0;

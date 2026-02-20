@@ -1,19 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:page_transition/page_transition.dart';
+import 'package:study_drill/service/authentication/authentication_service.dart';
 import 'package:study_drill/utils/constants/general_constants.dart';
 import 'package:study_drill/utils/utils.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../../models/user/user_model.dart';
 import '../../service/user/user_service.dart';
-import '../../utils/constants/navigation/home_screen/home_screen_constants.dart';
-import '../../widgets/navigation/dashboard_button.dart';
-import '../../widgets/navigation/dashboard_card.dart';
+import '../../utils/constants/navigation/screens/home_screen_constants.dart';
+import '../../widgets/navigation/home_screen_button.dart';
+import '../../widgets/navigation/home_screen_card.dart';
+import '../authentication/login_screen.dart';
+import '../groups/group_list_screen.dart';
+import '../groups/my_groups_screen.dart';
+import '../information/information_screen.dart';
+import '../user/profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
 
   final UserService _userService = UserService();
+  final AuthenticationService _authenticationService = AuthenticationService();
 
   @override
   Widget build(BuildContext context) {
@@ -21,11 +31,11 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: GeneralConstants.backgroundColor,
       appBar: AppBar(
         backgroundColor: GeneralConstants.backgroundColor,
-        elevation: GeneralConstants.appbarElevation,
-        toolbarHeight: GeneralConstants.appbarHeight,
+        elevation: GeneralConstants.appBarElevation,
+        toolbarHeight: GeneralConstants.appBarHeight,
         centerTitle: true,
         title: Text(
-          GeneralConstants.appName,
+          GeneralConstants.name,
           style: GoogleFonts.lexend(
             fontSize: Utils.isMobile(context)
                 ? GeneralConstants.mediumTitleSize
@@ -54,7 +64,7 @@ class HomeScreen extends StatelessWidget {
 
                     /// WELCOME MESSAGE TITLE
                     Text(
-                          'Welcome $username!',
+                          'Welcome, $username!',
                           maxLines:
                               HomeScreenConstants.welcomeMessageTitleMaxLines,
                           overflow: TextOverflow.ellipsis,
@@ -92,8 +102,14 @@ class HomeScreen extends StatelessWidget {
                       icon: Icons.star_rounded,
                       color: GeneralConstants.primaryColor,
                       textColor: Colors.white,
-                      onTap: () => {
-                        // TODO: navigate to my groups list screen
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          PageTransition<void>(
+                            type: PageTransitionType.fade,
+                            child: const MyGroupsScreen(),
+                          ),
+                        );
                       },
                     ).animate().fade(duration: 500.ms).scale(),
 
@@ -122,7 +138,13 @@ class HomeScreen extends StatelessWidget {
                                 label: 'Find Groups',
                                 icon: Icons.groups_rounded,
                                 onTap: () => {
-                                  // TODO: navigate to search groups screen
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute<void>(
+                                      builder: (context) =>
+                                          const GroupListScreen(),
+                                    ),
+                                  ),
                                 },
                               ),
                             ),
@@ -138,8 +160,13 @@ class HomeScreen extends StatelessWidget {
                     DashboardButton(
                       label: 'My Profile',
                       icon: Icons.account_circle_outlined,
-                      onTap: () => {
-                        // TODO: navigate to my profile screen
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (context) => const ProfileScreen(),
+                          ),
+                        );
                       },
                     ),
 
@@ -153,8 +180,14 @@ class HomeScreen extends StatelessWidget {
                                   DashboardButton(
                                         label: 'Information',
                                         icon: Icons.info_outline_rounded,
-                                        onTap: () => {
-                                          // TODO: navigate to information screen
+                                        onTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute<void>(
+                                              builder: (context) =>
+                                                  const InformationScreen(),
+                                            ),
+                                          );
                                         },
                                       )
                                       .animate()
@@ -173,8 +206,34 @@ class HomeScreen extends StatelessWidget {
                               child: DashboardButton(
                                 label: 'Log Out',
                                 icon: Icons.logout_rounded,
-                                onTap: () => {
-                                  // TODO: log out user
+                                onTap: () async {
+                                  await _authenticationService.logout();
+                                  if (context.mounted) {
+                                    Navigator.of(
+                                      context,
+                                    ).pushAndRemoveUntil<void>(
+                                      PageTransition<void>(
+                                        type: PageTransitionType.fade,
+                                        child: const LoginScreen(),
+                                        duration: const Duration(
+                                          milliseconds: GeneralConstants
+                                              .transitionDurationMs,
+                                        ),
+                                      ),
+                                      (route) => false,
+                                    );
+                                    showTopSnackBar(
+                                      Overlay.of(context),
+                                      displayDuration: const Duration(
+                                        milliseconds: GeneralConstants
+                                            .notificationDurationMs,
+                                      ),
+                                      snackBarPosition: SnackBarPosition.bottom,
+                                      const CustomSnackBar.success(
+                                        message: 'Logout Successful',
+                                      ),
+                                    );
+                                  }
                                 },
                               ),
                             ),
