@@ -42,7 +42,7 @@ UserPrivacySettings _$UserPrivacySettingsFromJson(Map<String, dynamic> json) =>
           $enumDecodeNullable(_$UserVisibilityEnumMap, json['statistics']) ??
           UserVisibility.public,
       groups:
-          $enumDecodeNullable(_$UserVisibilityEnumMap, json['groups']) ??
+          $enumDecodeNullable(_$UserVisibilityEnumMap, json['group']) ??
           UserVisibility.public,
       tests:
           $enumDecodeNullable(_$UserVisibilityEnumMap, json['tests']) ??
@@ -54,7 +54,7 @@ Map<String, dynamic> _$UserPrivacySettingsToJson(
 ) => <String, dynamic>{
   'email': _$UserVisibilityEnumMap[instance.email]!,
   'statistics': _$UserVisibilityEnumMap[instance.statistics]!,
-  'groups': _$UserVisibilityEnumMap[instance.groups]!,
+  'group': _$UserVisibilityEnumMap[instance.groups]!,
   'tests': _$UserVisibilityEnumMap[instance.tests]!,
 };
 
@@ -107,6 +107,11 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
           ?.map((e) => e as String)
           .toList() ??
       const [],
+  sentFriendRequestIds:
+      (json['sent_friend_request_ids'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
@@ -124,4 +129,5 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'group_ids': instance.groupIds,
   'friend_ids': instance.friendIds,
   'pending_friend_request_ids': instance.pendingFriendRequestIds,
+  'sent_friend_request_ids': instance.sentFriendRequestIds,
 };

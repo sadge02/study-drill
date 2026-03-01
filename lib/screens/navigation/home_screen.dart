@@ -3,8 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:study_drill/service/authentication/authentication_service.dart';
-import 'package:study_drill/utils/constants/general_constants.dart';
-import 'package:study_drill/utils/utils.dart';
+import 'package:study_drill/utils/constants/core/general_constants.dart';
+import 'package:study_drill/utils/core/utils.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
@@ -17,7 +17,8 @@ import '../authentication/login_screen.dart';
 import '../groups/group_list_screen.dart';
 import '../groups/my_groups_screen.dart';
 import '../information/information_screen.dart';
-import '../user/profile_screen.dart';
+import '../user/find_profile_screen.dart';
+import '../user/profile_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
@@ -96,9 +97,9 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: GeneralConstants.largeSpacing),
 
                     /// MY GROUPS BUTTON
-                    DashboardCard(
+                    HomeScreenCard(
                       title: 'My Groups',
-                      subtitle: 'View and manage your study groups',
+                      subtitle: 'View and manage your study group',
                       icon: Icons.star_rounded,
                       color: GeneralConstants.primaryColor,
                       textColor: Colors.white,
@@ -119,11 +120,17 @@ class HomeScreen extends StatelessWidget {
                           children: [
                             /// FIND USERS BUTTON
                             Expanded(
-                              child: DashboardButton(
+                              child: HomeScreenButton(
                                 label: 'Find Users',
                                 icon: Icons.person_search_rounded,
                                 onTap: () => {
-                                  // TODO: navigate to search users screen
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const FindUsersScreen(),
+                                    ),
+                                  ),
                                 },
                               ),
                             ),
@@ -134,7 +141,7 @@ class HomeScreen extends StatelessWidget {
 
                             /// FIND GROUPS BUTTON
                             Expanded(
-                              child: DashboardButton(
+                              child: HomeScreenButton(
                                 label: 'Find Groups',
                                 icon: Icons.groups_rounded,
                                 onTap: () => {
@@ -142,7 +149,7 @@ class HomeScreen extends StatelessWidget {
                                     context,
                                     MaterialPageRoute<void>(
                                       builder: (context) =>
-                                          const GroupListScreen(),
+                                          const FindGroupsScreen(),
                                     ),
                                   ),
                                 },
@@ -157,14 +164,14 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: GeneralConstants.mediumSpacing),
 
                     /// MY PROFILE BUTTON
-                    DashboardButton(
+                    HomeScreenButton(
                       label: 'My Profile',
                       icon: Icons.account_circle_outlined,
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute<void>(
-                            builder: (context) => const ProfileScreen(),
+                            builder: (context) => const ProfileDetailScreen(),
                           ),
                         );
                       },
@@ -177,7 +184,7 @@ class HomeScreen extends StatelessWidget {
                             /// INFORMATION BUTTON
                             Expanded(
                               child:
-                                  DashboardButton(
+                                  HomeScreenButton(
                                         label: 'Information',
                                         icon: Icons.info_outline_rounded,
                                         onTap: () {
@@ -203,7 +210,7 @@ class HomeScreen extends StatelessWidget {
 
                             /// LOG OUT BUTTON
                             Expanded(
-                              child: DashboardButton(
+                              child: HomeScreenButton(
                                 label: 'Log Out',
                                 icon: Icons.logout_rounded,
                                 onTap: () async {

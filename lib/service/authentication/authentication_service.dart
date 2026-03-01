@@ -2,8 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide User;
 import 'package:study_drill/models/user/user_model.dart';
 import 'package:study_drill/utils/constants/collections/database_constants.dart';
-import 'package:study_drill/utils/constants/validator/authentication_validator_constants.dart';
-import 'package:study_drill/utils/validators/authentication_validator.dart';
+import 'package:study_drill/utils/validators/authentication/authentication_validator.dart';
+
+import '../../utils/constants/error/messages/firebase_exception_constants.dart';
 
 class AuthenticationService {
   final FirebaseAuth _authentication = FirebaseAuth.instance;
@@ -35,7 +36,7 @@ class AuthenticationService {
       }
 
       if (await isUsernameTaken(username)) {
-        return AuthenticationValidatorConstants.usernameTakenMessage;
+        return FirebaseExceptionConstants.usernameTakenMessage;
       }
 
       final credentials = await _authentication.createUserWithEmailAndPassword(
@@ -82,7 +83,7 @@ class AuthenticationService {
     } on FirebaseAuthException catch (exception) {
       return _handleAuthError(exception);
     } catch (_) {
-      return AuthenticationValidatorConstants.unexpectedErrorMessage;
+      return FirebaseExceptionConstants.unexpectedErrorMessage;
     }
   }
 
@@ -137,27 +138,27 @@ class AuthenticationService {
 
   String _handleAuthError(FirebaseAuthException exception) {
     switch (exception.code) {
-      case AuthenticationValidatorConstants.weakPasswordException:
-        return AuthenticationValidatorConstants.passwordWeakMessage;
-      case AuthenticationValidatorConstants.emailAlreadyInUseException:
-        return AuthenticationValidatorConstants.emailAlreadyInUseMessage;
-      case AuthenticationValidatorConstants.userNotFoundException:
-        return AuthenticationValidatorConstants.userNotFoundMessage;
-      case AuthenticationValidatorConstants.wrongPasswordException:
-        return AuthenticationValidatorConstants.passwordWrongMessage;
-      case AuthenticationValidatorConstants.invalidCredentialException:
-        return AuthenticationValidatorConstants.invalidCredentialsMessage;
-      case AuthenticationValidatorConstants.invalidEmailException:
-        return AuthenticationValidatorConstants.emailInvalidMessage;
-      case AuthenticationValidatorConstants.userDisabledException:
-        return AuthenticationValidatorConstants.userDisabledMessage;
-      case AuthenticationValidatorConstants.tooManyRequestsException:
-        return AuthenticationValidatorConstants.tooManyRequestsMessage;
-      case AuthenticationValidatorConstants.networkRequestFailedException:
-        return AuthenticationValidatorConstants.networkRequestFailed;
+      case FirebaseExceptionConstants.weakPasswordException:
+        return FirebaseExceptionConstants.passwordWeakMessage;
+      case FirebaseExceptionConstants.emailAlreadyInUseException:
+        return FirebaseExceptionConstants.emailAlreadyInUseMessage;
+      case FirebaseExceptionConstants.userNotFoundException:
+        return FirebaseExceptionConstants.userNotFoundMessage;
+      case FirebaseExceptionConstants.wrongPasswordException:
+        return FirebaseExceptionConstants.passwordWrongMessage;
+      case FirebaseExceptionConstants.invalidCredentialException:
+        return FirebaseExceptionConstants.invalidCredentialsMessage;
+      case FirebaseExceptionConstants.invalidEmailException:
+        return FirebaseExceptionConstants.emailInvalidMessage;
+      case FirebaseExceptionConstants.userDisabledException:
+        return FirebaseExceptionConstants.userDisabledMessage;
+      case FirebaseExceptionConstants.tooManyRequestsException:
+        return FirebaseExceptionConstants.tooManyRequestsMessage;
+      case FirebaseExceptionConstants.networkRequestFailedException:
+        return FirebaseExceptionConstants.networkRequestFailed;
       default:
         return exception.message ??
-            AuthenticationValidatorConstants.unexpectedErrorMessage;
+            FirebaseExceptionConstants.unexpectedErrorMessage;
     }
   }
 }

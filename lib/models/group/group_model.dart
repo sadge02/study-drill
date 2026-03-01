@@ -1,11 +1,13 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import '../../utils/constants/models/group_model_field_constants.dart';
+
 part 'group_model.g.dart';
 
 enum GroupVisibility {
-  @JsonValue('public')
+  @JsonValue(GroupModelFieldConstants.groupVisibilityPublic)
   public,
-  @JsonValue('private')
+  @JsonValue(GroupModelFieldConstants.groupVisibilityPrivate)
   private,
 }
 
@@ -22,13 +24,13 @@ class GroupSettings {
 
   Map<String, dynamic> toJson() => _$GroupSettingsToJson(this);
 
-  @JsonKey(name: 'auto_add_as_editor')
+  @JsonKey(name: GroupModelFieldConstants.autoAddAsEditor)
   final bool autoAddAsEditor;
 
-  @JsonKey(name: 'notify_on_new_content')
+  @JsonKey(name: GroupModelFieldConstants.notifyOnNewContent)
   final bool notifyOnNewContent;
 
-  @JsonKey(name: 'requires_approval')
+  @JsonKey(name: GroupModelFieldConstants.requiresApproval)
   final bool requiresApproval;
 }
 
@@ -60,49 +62,58 @@ class GroupModel {
 
   Map<String, dynamic> toJson() => _$GroupModelToJson(this);
 
+  @JsonKey(name: GroupModelFieldConstants.id)
   final String id;
+
+  @JsonKey(name: GroupModelFieldConstants.name)
   final String name;
 
-  @JsonKey(name: 'name_lowercase')
+  @JsonKey(name: GroupModelFieldConstants.nameLowercase)
   final String nameLowercase;
 
+  @JsonKey(name: GroupModelFieldConstants.summary)
   final String summary;
 
-  @JsonKey(name: 'profile_pic')
+  @JsonKey(name: GroupModelFieldConstants.profilePic)
   final String profilePic;
 
-  @JsonKey(name: 'author_id')
+  @JsonKey(name: GroupModelFieldConstants.authorId)
   final String authorId;
 
+  @JsonKey(name: GroupModelFieldConstants.visibility)
   final GroupVisibility visibility;
+
+  @JsonKey(name: GroupModelFieldConstants.settings)
   final GroupSettings settings;
+
+  @JsonKey(name: GroupModelFieldConstants.tags)
   final List<String> tags;
 
-  @JsonKey(name: 'user_ids')
+  @JsonKey(name: GroupModelFieldConstants.userIds)
   final List<String> userIds;
 
-  @JsonKey(name: 'editor_user_ids')
+  @JsonKey(name: GroupModelFieldConstants.editorUserIds)
   final List<String> editorUserIds;
 
-  @JsonKey(name: 'pending_user_ids')
+  @JsonKey(name: GroupModelFieldConstants.pendingUserRequestIds)
   final List<String> pendingUserRequestIds;
 
-  @JsonKey(name: 'admin_ids')
+  @JsonKey(name: GroupModelFieldConstants.adminIds)
   final List<String> adminIds;
 
-  @JsonKey(name: 'test_ids')
+  @JsonKey(name: GroupModelFieldConstants.testIds)
   final List<String> testIds;
 
-  @JsonKey(name: 'flashcard_ids')
+  @JsonKey(name: GroupModelFieldConstants.flashcardIds)
   final List<String> flashcardIds;
 
-  @JsonKey(name: 'match_game_ids')
+  @JsonKey(name: GroupModelFieldConstants.matchGameIds)
   final List<String> matchGameIds;
 
-  @JsonKey(name: 'created_at')
+  @JsonKey(name: GroupModelFieldConstants.createdAt)
   final DateTime createdAt;
 
-  @JsonKey(name: 'updated_at')
+  @JsonKey(name: GroupModelFieldConstants.updatedAt)
   final DateTime updatedAt;
 
   int get memberCount => userIds.length;
