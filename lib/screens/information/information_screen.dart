@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:study_drill/utils/constants/general_constants.dart';
+import 'package:study_drill/utils/constants/core/general_constants.dart';
 import 'package:study_drill/utils/constants/information/screens/information_screen_constants.dart';
 
-import '../../utils/utils.dart';
+import '../../utils/core/utils.dart';
 
 class InformationScreen extends StatelessWidget {
   const InformationScreen({super.key});

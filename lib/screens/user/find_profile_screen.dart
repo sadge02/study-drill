@@ -1,20 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// Adjust this import path based on where you place this file
-import '../../models/group/group_model.dart';
+import '../../models/user/user_model.dart';
 import '../../utils/constants/core/general_constants.dart';
 
-class MyGroupsScreen extends StatefulWidget {
-  const MyGroupsScreen({super.key});
+class FindUsersScreen extends StatefulWidget {
+  const FindUsersScreen({super.key});
 
   @override
-  State<MyGroupsScreen> createState() => _MyGroupsScreenState();
+  State<FindUsersScreen> createState() => _FindUsersScreenState();
 }
 
-class _MyGroupsScreenState extends State<MyGroupsScreen> {
+class _FindUsersScreenState extends State<FindUsersScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -35,7 +33,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
         iconTheme: const IconThemeData(color: GeneralConstants.primaryColor),
         centerTitle: true,
         title: Text(
-          'My Groups',
+          'Find Users',
           style: GoogleFonts.lexend(
             fontSize: GeneralConstants.mediumTitleSize,
             fontWeight: FontWeight.w200,
@@ -46,21 +44,15 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
       body: Column(
         children: [
           _buildSearchBar(),
-          Expanded(child: _buildGroupsList()),
+          Expanded(child: _buildUsersList()),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: GeneralConstants.primaryColor,
-        child: const Icon(Icons.add, color: GeneralConstants.backgroundColor),
-        onPressed: () {
-          // TODO: Navigate to your CreateEditGroupScreen here
-        },
       ),
     );
   }
 
   Widget _buildSearchBar() {
     return Padding(
+      // Using a fallback of 16.0 just in case mediumPadding isn't a double
       padding: const EdgeInsets.all(GeneralConstants.mediumPadding ?? 16.0),
       child: TextField(
         controller: _searchController,
@@ -71,13 +63,14 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
         },
         style: GoogleFonts.lexend(color: GeneralConstants.primaryColor),
         decoration: InputDecoration(
-          hintText: 'Search my group...',
+          hintText: 'Search for users...',
           hintStyle: GoogleFonts.lexend(color: Colors.grey),
           prefixIcon: const Icon(
             Icons.search,
             color: GeneralConstants.primaryColor,
           ),
           filled: true,
+          // Assuming tertiaryColor is a good background for text fields as used in avatars
           fillColor: GeneralConstants.tertiaryColor ?? Colors.grey[200],
           contentPadding: const EdgeInsets.symmetric(
             vertical: 0,
@@ -94,26 +87,26 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
     );
   }
 
-  Widget _buildGroupsList() {
-    final currentUser = FirebaseAuth.instance.currentUser;
+  Widget _buildUsersList() {
+    // Reference your users collection
+    Query query = FirebaseFirestore.instance.collection('users');
 
-    if (currentUser == null) {
-      return Center(
-        child: Text(
-          'Please log in to see your group.',
-          style: GoogleFonts.lexend(color: GeneralConstants.secondaryColor),
-        ),
-      );
+    if (_searchQuery.isNotEmpty) {
+      // Query using the lowercase username field for a case-insensitive prefix search
+      query = query
+          .where('username_lowercase', isGreaterThanOrEqualTo: _searchQuery)
+          .where(
+            'username_lowercase',
+            isLessThanOrEqualTo: '$_searchQuery\uf8ff',
+          )
+          .limit(20);
+    } else {
+      // Show some default users (or you can show an empty state instead)
+      query = query.limit(20);
     }
 
-    // Query Firestore for group where the userIds array contains the current user's UID
-    final Stream<QuerySnapshot> groupsStream = FirebaseFirestore.instance
-        .collection('group')
-        .where('user_ids', arrayContains: currentUser.uid)
-        .snapshots();
-
     return StreamBuilder<QuerySnapshot>(
-      stream: groupsStream,
+      stream: query.snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -126,7 +119,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
         if (snapshot.hasError) {
           return Center(
             child: Text(
-              'Error loading your group',
+              'Error loading users',
               style: GoogleFonts.lexend(color: GeneralConstants.secondaryColor),
             ),
           );
@@ -135,49 +128,34 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(
             child: Text(
-              'You haven\'t joined any group yet.',
+              'No users found',
               style: GoogleFonts.lexend(color: GeneralConstants.secondaryColor),
             ),
           );
         }
 
-        // Map documents to GroupModel
-        List<GroupModel> groups = snapshot.data!.docs.map((doc) {
+        // Map Firestore documents to your UserModel
+        final users = snapshot.data!.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
+          // Ensure ID is passed if your fromJson requires the document ID to be merged
           data['id'] ??= doc.id;
-          return GroupModel.fromJson(data);
+          return UserModel.fromJson(data);
         }).toList();
 
-        // Perform local filtering based on the search query using nameLowercase
-        if (_searchQuery.isNotEmpty) {
-          groups = groups.where((group) {
-            return group.nameLowercase.contains(_searchQuery);
-          }).toList();
-        }
-
-        if (groups.isEmpty) {
-          return Center(
-            child: Text(
-              'No group match your search.',
-              style: GoogleFonts.lexend(color: GeneralConstants.secondaryColor),
-            ),
-          );
-        }
-
         return ListView.builder(
-          itemCount: groups.length,
+          itemCount: users.length,
           padding: const EdgeInsets.symmetric(
             horizontal: GeneralConstants.mediumPadding ?? 16.0,
           ),
           itemBuilder: (context, index) {
-            return _buildGroupCard(groups[index]);
+            return _buildUserCard(users[index]);
           },
         );
       },
     );
   }
 
-  Widget _buildGroupCard(GroupModel group) {
+  Widget _buildUserCard(UserModel user) {
     return Card(
       color: GeneralConstants.backgroundColor,
       elevation: 2,
@@ -194,21 +172,20 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
         leading: CircleAvatar(
           radius: 24,
           backgroundColor: GeneralConstants.tertiaryColor,
-          backgroundImage: group.profilePic.isNotEmpty
-              ? NetworkImage(group.profilePic)
-              : null,
-          onBackgroundImageError: (_, __) => const Icon(Icons.group),
-          child: group.profilePic.isEmpty ? const Icon(Icons.group) : null,
+          backgroundImage: NetworkImage(user.profilePic),
+          onBackgroundImageError: (_, __) => const Icon(Icons.person),
         ),
         title: Text(
-          group.name,
+          user.username,
           style: GoogleFonts.lexend(
             fontWeight: FontWeight.w500,
             color: GeneralConstants.primaryColor,
           ),
         ),
         subtitle: Text(
-          '${group.memberCount} member(s)', // Utilizing the memberCount getter from GroupModel
+          user.summary.isNotEmpty ? user.summary : 'No summary available',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.lexend(
             color: GeneralConstants.secondaryColor ?? Colors.grey[700],
             fontSize: 12,
@@ -219,7 +196,8 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
           color: GeneralConstants.primaryColor,
         ),
         onTap: () {
-          // TODO: Navigate to the active Group Dashboard/Details
+          // TODO: Navigate to User Profile Screen
+          // Navigator.push(context, MaterialPageRoute(builder: (_) => UserProfileScreen(user: user)));
         },
       ),
     );

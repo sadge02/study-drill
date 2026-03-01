@@ -4,7 +4,10 @@ import 'package:rxdart/rxdart.dart';
 import 'package:study_drill/models/user/user_model.dart';
 import 'package:study_drill/utils/constants/collections/database_constants.dart';
 import 'package:study_drill/utils/constants/service/user_service_constants.dart';
-import 'package:study_drill/utils/constants/validator/authentication_validator_constants.dart';
+
+import '../../utils/constants/error/messages/firebase_exception_constants.dart';
+import '../../utils/constants/models/group_model_field_constants.dart';
+import '../../utils/constants/models/user_model_field_constants.dart';
 
 class UserService {
   final FirebaseAuth _authentication = FirebaseAuth.instance;
@@ -61,9 +64,15 @@ class UserService {
           fromFirestore: (snapshot, _) => UserModel.fromJson(snapshot.data()!),
           toFirestore: (user, _) => user.toJson(),
         )
-        .where('username_lowercase', isGreaterThanOrEqualTo: searchKey)
-        .where('username_lowercase', isLessThanOrEqualTo: '$searchKey\uf8ff')
-        .orderBy('username_lowercase')
+        .where(
+          UserModelFieldConstants.usernameLowercase,
+          isGreaterThanOrEqualTo: searchKey,
+        )
+        .where(
+          UserModelFieldConstants.usernameLowercase,
+          isLessThanOrEqualTo: '$searchKey\uf8ff',
+        )
+        .orderBy(UserModelFieldConstants.usernameLowercase)
         .limit(UserServiceConstants.userLimit)
         .snapshots()
         .map(
@@ -82,18 +91,21 @@ class UserService {
   }) async {
     final uid = currentUid;
     if (uid == null) {
-      throw Exception(AuthenticationValidatorConstants.userNotLoggedInMessage);
+      throw Exception(FirebaseExceptionConstants.userNotLoggedInMessage);
     }
 
     final updates = <String, dynamic>{
-      'updated_at': DateTime.now().toIso8601String(),
-      'username': ?username,
-      if (username != null) 'username_lowercase': username.toLowerCase(),
-      'summary': ?summary,
-      'profile_pic': ?profilePic,
-      if (privacySettings != null) 'privacy_settings': privacySettings.toJson(),
-      if (settings != null) 'settings': settings.toJson(),
-      if (statistics != null) 'statistics': statistics.toJson(),
+      UserModelFieldConstants.updatedAt: DateTime.now().toIso8601String(),
+      UserModelFieldConstants.username: ?username,
+      if (username != null)
+        UserModelFieldConstants.usernameLowercase: username.toLowerCase(),
+      UserModelFieldConstants.summary: ?summary,
+      UserModelFieldConstants.profilePic: ?profilePic,
+      if (privacySettings != null)
+        UserModelFieldConstants.privacySettings: privacySettings.toJson(),
+      if (settings != null) UserModelFieldConstants.settings: settings.toJson(),
+      if (statistics != null)
+        UserModelFieldConstants.statistics: statistics.toJson(),
     };
 
     try {
@@ -114,7 +126,9 @@ class UserService {
 
     try {
       batch.update(_database.collection(_usersCollection).doc(targetUserId), {
-        'pending_friend_request_ids': FieldValue.arrayUnion([uid]),
+        UserModelFieldConstants.pendingFriendRequestIds: FieldValue.arrayUnion([
+          uid,
+        ]),
       });
 
       await batch.commit();
@@ -135,12 +149,16 @@ class UserService {
         .doc(friendId);
 
     batch.update(currentUserDocument, {
-      'pending_friend_request_ids': FieldValue.arrayRemove([friendId]),
-      'friend_ids': FieldValue.arrayUnion([friendId]),
+      UserModelFieldConstants.pendingFriendRequestIds: FieldValue.arrayRemove([
+        friendId,
+      ]),
+      UserModelFieldConstants.friendIds: FieldValue.arrayUnion([friendId]),
     });
     batch.update(otherUserDocument, {
-      'friend_ids': FieldValue.arrayUnion([uid]),
-      'sent_friend_request_ids': FieldValue.arrayRemove([uid]),
+      UserModelFieldConstants.friendIds: FieldValue.arrayUnion([uid]),
+      UserModelFieldConstants.sentFriendRequestIds: FieldValue.arrayRemove([
+        uid,
+      ]),
     });
 
     await batch.commit();
@@ -150,21 +168,24 @@ class UserService {
     final uid = currentUid;
 
     if (uid == null) {
-      throw Exception(AuthenticationValidatorConstants.userNotLoggedInMessage);
+      throw Exception(FirebaseExceptionConstants.userNotLoggedInMessage);
     }
 
     final ownedGroupsQuery = await _database
         .collection(DatabaseConstants.groupsCollection)
-        .where('author_id', isEqualTo: uid)
+        .where(GroupModelFieldConstants.authorId, isEqualTo: uid)
         .get();
 
     if (ownedGroupsQuery.docs.isNotEmpty) {
       ownedGroupsQuery.docs
-          .map((document) => document.data()['name'] as String)
+          .map(
+            (document) =>
+                document.data()[GroupModelFieldConstants.name] as String,
+          )
           .toList();
 
       throw Exception(
-        AuthenticationValidatorConstants.userDeleteAccountConditionsMessage,
+        FirebaseExceptionConstants.userDeleteAccountConditionsMessage,
       );
     }
 
@@ -187,9 +208,9 @@ class UserService {
           .collection(DatabaseConstants.groupsCollection)
           .doc(groupId);
       batch.update(groupReference, {
-        'user_ids': FieldValue.arrayRemove([uid]),
-        'admin_ids': FieldValue.arrayRemove([uid]),
-        'editor_user_ids': FieldValue.arrayRemove([uid]),
+        GroupModelFieldConstants.userIds: FieldValue.arrayRemove([uid]),
+        GroupModelFieldConstants.adminIds: FieldValue.arrayRemove([uid]),
+        GroupModelFieldConstants.editorUserIds: FieldValue.arrayRemove([uid]),
       });
     }
 

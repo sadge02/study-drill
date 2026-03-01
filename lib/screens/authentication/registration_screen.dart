@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:study_drill/utils/constants/authentication/screens/registration_screen_constants.dart';
-import 'package:study_drill/utils/constants/general_constants.dart';
-import 'package:study_drill/utils/enums/authentication_input_type_enum.dart';
-import 'package:study_drill/utils/utils.dart';
+import 'package:study_drill/utils/constants/core/general_constants.dart';
+import 'package:study_drill/utils/core/utils.dart';
+import 'package:study_drill/utils/enums/authentication/authentication_input_type_enum.dart';
 import 'package:study_drill/widgets/authentication/authentication_input_field.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';

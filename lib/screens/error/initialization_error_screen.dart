@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:study_drill/utils/constants/core/general_constants.dart';
 import 'package:study_drill/utils/constants/error/screens/initialization_error_screen_constants.dart';
-import 'package:study_drill/utils/constants/general_constants.dart';
 
 class InitializationErrorScreen extends StatelessWidget {
   const InitializationErrorScreen({super.key, required this.onRestart});

@@ -1,11 +1,13 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import '../../utils/constants/models/user_model_field_constants.dart';
+
 part 'user_model.g.dart';
 
 enum UserVisibility {
-  @JsonValue('public')
+  @JsonValue(UserModelFieldConstants.userVisibilityPublic)
   public,
-  @JsonValue('private')
+  @JsonValue(UserModelFieldConstants.userVisibilityPrivate)
   private,
 }
 
@@ -37,7 +39,7 @@ class UserTests {
 
   Map<String, dynamic> toJson() => _$UserTestsToJson(this);
 
-  @JsonKey(name: 'user_tests')
+  @JsonKey(name: UserModelFieldConstants.userTests)
   final Map<String, UserTestResult> userTests;
 
   int get totalTestsTaken =>
@@ -89,10 +91,10 @@ class UserSettings {
 
   Map<String, dynamic> toJson() => _$UserSettingsToJson(this);
 
-  @JsonKey(name: 'get_notifications')
+  @JsonKey(name: UserModelFieldConstants.getNotifications)
   final bool getInAppNotifications;
 
-  @JsonKey(name: 'get_push_notifications')
+  @JsonKey(name: UserModelFieldConstants.getPushNotifications)
   final bool getPushNotifications;
 }
 
@@ -113,6 +115,7 @@ class UserModel {
     required this.groupIds,
     this.friendIds = const [],
     this.pendingFriendRequestIds = const [],
+    this.sentFriendRequestIds = const [],
   }) : statistics = statistics ?? UserTests(),
        privacySettings = privacySettings ?? const UserPrivacySettings(),
        settings = settings ?? const UserSettings();
@@ -122,37 +125,48 @@ class UserModel {
 
   Map<String, dynamic> toJson() => _$UserModelToJson(this);
 
+  @JsonKey(name: UserModelFieldConstants.id)
   final String id;
+
+  @JsonKey(name: UserModelFieldConstants.email)
   final String email;
+
+  @JsonKey(name: UserModelFieldConstants.username)
   final String username;
 
-  @JsonKey(name: 'username_lowercase')
+  @JsonKey(name: UserModelFieldConstants.usernameLowercase)
   final String usernameLowercase;
 
+  @JsonKey(name: UserModelFieldConstants.summary)
   final String summary;
 
-  @JsonKey(name: 'profile_pic')
+  @JsonKey(name: UserModelFieldConstants.profilePic)
   final String profilePic;
 
-  @JsonKey(name: 'created_at')
+  @JsonKey(name: UserModelFieldConstants.createdAt)
   final DateTime createdAt;
 
-  @JsonKey(name: 'updated_at')
+  @JsonKey(name: UserModelFieldConstants.updatedAt)
   final DateTime updatedAt;
 
+  @JsonKey(name: UserModelFieldConstants.statistics)
   final UserTests statistics;
 
-  @JsonKey(name: 'privacy_settings')
+  @JsonKey(name: UserModelFieldConstants.privacySettings)
   final UserPrivacySettings privacySettings;
 
+  @JsonKey(name: UserModelFieldConstants.settings)
   final UserSettings settings;
 
-  @JsonKey(name: 'group_ids')
+  @JsonKey(name: UserModelFieldConstants.groupIds)
   final List<String> groupIds;
 
-  @JsonKey(name: 'friend_ids')
+  @JsonKey(name: UserModelFieldConstants.friendIds)
   final List<String> friendIds;
 
-  @JsonKey(name: 'pending_friend_request_ids')
+  @JsonKey(name: UserModelFieldConstants.pendingFriendRequestIds)
   final List<String> pendingFriendRequestIds;
+
+  @JsonKey(name: UserModelFieldConstants.sentFriendRequestIds)
+  final List<String> sentFriendRequestIds;
 }

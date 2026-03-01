@@ -2,9 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:study_drill/models/group/group_model.dart';
 import 'package:study_drill/utils/constants/collections/database_constants.dart';
-import 'package:study_drill/utils/constants/validator/authentication_validator_constants.dart';
 
-import '../../utils/enums/sorting_type_enum.dart';
+import '../../utils/constants/error/messages/firebase_exception_constants.dart';
+import '../../utils/constants/models/group_model_field_constants.dart';
+import '../../utils/constants/models/user_model_field_constants.dart';
+import '../../utils/enums/group/group_sort_option_enum.dart';
 
 class GroupService {
   final FirebaseAuth _authentication = FirebaseAuth.instance;
@@ -26,7 +28,7 @@ class GroupService {
     try {
       final uid = currentUid;
       if (uid == null) {
-        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+        return FirebaseExceptionConstants.userNotLoggedInMessage;
       }
 
       final groupDocument = _database.collection(_groupsCollection).doc();
@@ -55,14 +57,14 @@ class GroupService {
       batch.set(groupDocument, group.toJson());
 
       batch.update(_database.collection(_usersCollection).doc(uid), {
-        'group_ids': FieldValue.arrayUnion([groupId]),
+        UserModelFieldConstants.groupIds: FieldValue.arrayUnion([groupId]),
       });
 
       await batch.commit();
 
       return null;
     } catch (_) {
-      return AuthenticationValidatorConstants.groupCreateFailedMessage;
+      return FirebaseExceptionConstants.groupCreateFailedMessage;
     }
   }
 
@@ -88,14 +90,14 @@ class GroupService {
       final uid = currentUid;
 
       if (uid == null) {
-        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+        return FirebaseExceptionConstants.userNotLoggedInMessage;
       }
 
       if (group.userIds.contains(uid)) {
-        return AuthenticationValidatorConstants.userAlreadyAMemberMessage;
+        return FirebaseExceptionConstants.userAlreadyAMemberMessage;
       }
       if (group.pendingUserRequestIds.contains(uid)) {
-        return AuthenticationValidatorConstants.userAlreadyRequestedMessage;
+        return FirebaseExceptionConstants.userAlreadyRequestedMessage;
       }
 
       final groupReference = _database
@@ -107,30 +109,34 @@ class GroupService {
 
       if (group.visibility == GroupVisibility.public) {
         batch.update(groupReference, {
-          'user_ids': FieldValue.arrayUnion([uid]),
+          GroupModelFieldConstants.userIds: FieldValue.arrayUnion([uid]),
           if (group.settings.autoAddAsEditor)
-            'editor_user_ids': FieldValue.arrayUnion([uid]),
-          'updated_at': FieldValue.serverTimestamp(),
+            GroupModelFieldConstants.editorUserIds: FieldValue.arrayUnion([
+              uid,
+            ]),
+          GroupModelFieldConstants.updatedAt: FieldValue.serverTimestamp(),
         });
 
         batch.update(userReference, {
-          'group_ids': FieldValue.arrayUnion([group.id]),
+          UserModelFieldConstants.groupIds: FieldValue.arrayUnion([group.id]),
         });
 
         await batch.commit();
 
-        return '${AuthenticationValidatorConstants.userSuccessfullyJoinedMessage} ${group.name}!';
+        return '${FirebaseExceptionConstants.userSuccessfullyJoinedMessage} ${group.name}!';
       } else {
         batch.update(groupReference, {
-          'pending_user_ids': FieldValue.arrayUnion([uid]),
+          GroupModelFieldConstants.pendingUserRequestIds: FieldValue.arrayUnion(
+            [uid],
+          ),
         });
 
         await batch.commit();
 
-        return AuthenticationValidatorConstants.userJoinRequestMessage;
+        return FirebaseExceptionConstants.userJoinRequestMessage;
       }
     } catch (exception) {
-      return '${AuthenticationValidatorConstants.userUnsuccessfullyJoinedMessage}: $exception';
+      return '${FirebaseExceptionConstants.userUnsuccessfullyJoinedMessage}: $exception';
     }
   }
 
@@ -139,7 +145,7 @@ class GroupService {
       final uid = currentUid;
 
       if (uid == null) {
-        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+        return FirebaseExceptionConstants.userNotLoggedInMessage;
       }
 
       return await _database.runTransaction((transaction) async {
@@ -151,38 +157,42 @@ class GroupService {
         final groupSnapshot = await transaction.get(groupReference);
 
         if (!groupSnapshot.exists) {
-          return AuthenticationValidatorConstants.groupDoesNotExist;
+          return FirebaseExceptionConstants.groupDoesNotExist;
         }
 
         final data = groupSnapshot.data();
 
-        final authorId = data?['author_id'];
+        final authorId = data?[GroupModelFieldConstants.authorId];
 
-        final userIds = List<String>.from((data?['user_ids'] as List?) ?? []);
+        final userIds = List<String>.from(
+          (data?[GroupModelFieldConstants.userIds] as List?) ?? [],
+        );
 
         if (uid == authorId) {
           if (userIds.length > 1) {
-            return AuthenticationValidatorConstants.groupOwnerLeaveMessage;
+            return FirebaseExceptionConstants.groupOwnerLeaveMessage;
           } else {
             transaction.delete(groupReference);
           }
         } else {
           transaction.update(groupReference, {
-            'user_ids': FieldValue.arrayRemove([uid]),
-            'admin_ids': FieldValue.arrayRemove([uid]),
-            'editor_user_ids': FieldValue.arrayRemove([uid]), //
-            'updated_at': FieldValue.serverTimestamp(),
+            GroupModelFieldConstants.userIds: FieldValue.arrayRemove([uid]),
+            GroupModelFieldConstants.adminIds: FieldValue.arrayRemove([uid]),
+            GroupModelFieldConstants.editorUserIds: FieldValue.arrayRemove([
+              uid,
+            ]), //
+            GroupModelFieldConstants.updatedAt: FieldValue.serverTimestamp(),
           });
         }
 
         transaction.update(userReference, {
-          'group_ids': FieldValue.arrayRemove([groupId]),
+          UserModelFieldConstants.groupIds: FieldValue.arrayRemove([groupId]),
         });
 
-        return AuthenticationValidatorConstants.groupLeaveSuccessMessage;
+        return FirebaseExceptionConstants.groupLeaveSuccessMessage;
       });
     } catch (_) {
-      return AuthenticationValidatorConstants.groupLeaveFailedMessage;
+      return FirebaseExceptionConstants.groupLeaveFailedMessage;
     }
   }
 
@@ -191,7 +201,7 @@ class GroupService {
       final uid = currentUid;
 
       if (uid == null) {
-        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+        return FirebaseExceptionConstants.userNotLoggedInMessage;
       }
 
       return await _database.runTransaction((transaction) async {
@@ -202,37 +212,38 @@ class GroupService {
         final groupSnapshot = await transaction.get(groupReference);
 
         if (!groupSnapshot.exists) {
-          return AuthenticationValidatorConstants.groupDoesNotExist;
+          return FirebaseExceptionConstants.groupDoesNotExist;
         }
 
         final data = groupSnapshot.data();
 
-        final currentAuthorId = data?['author_id'];
+        final currentAuthorId = data?[GroupModelFieldConstants.authorId];
 
-        final userIds = List<String>.from((data?['user_ids'] as List?) ?? []);
+        final userIds = List<String>.from(
+          (data?[GroupModelFieldConstants.userIds] as List?) ?? [],
+        );
 
         if (uid != currentAuthorId) {
-          return AuthenticationValidatorConstants
+          return FirebaseExceptionConstants
               .groupNonAuthorTransferOwnershipMessage;
         }
 
         if (!userIds.contains(newAuthorId)) {
-          return AuthenticationValidatorConstants
-              .groupNewOwnerMustBeMemberMessage;
+          return FirebaseExceptionConstants.groupNewOwnerMustBeMemberMessage;
         }
 
         transaction.update(groupReference, {
-          'author_id': newAuthorId,
-          'admin_ids': FieldValue.arrayUnion([newAuthorId]),
-          'updated_at': FieldValue.serverTimestamp(),
+          GroupModelFieldConstants.authorId: newAuthorId,
+          GroupModelFieldConstants.adminIds: FieldValue.arrayUnion([
+            newAuthorId,
+          ]),
+          GroupModelFieldConstants.updatedAt: FieldValue.serverTimestamp(),
         });
 
-        return AuthenticationValidatorConstants
-            .groupTransferOwnershipSuccessMessage;
+        return FirebaseExceptionConstants.groupTransferOwnershipSuccessMessage;
       });
     } catch (_) {
-      return AuthenticationValidatorConstants
-          .groupTransferOwnershipFailedMessage;
+      return FirebaseExceptionConstants.groupTransferOwnershipFailedMessage;
     }
   }
 
@@ -240,7 +251,7 @@ class GroupService {
     try {
       final uid = currentUid;
       if (uid == null) {
-        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+        return FirebaseExceptionConstants.userNotLoggedInMessage;
       }
 
       return await _database.runTransaction((transaction) async {
@@ -250,17 +261,19 @@ class GroupService {
         final groupSnapshot = await transaction.get(groupReference);
 
         if (!groupSnapshot.exists) {
-          return AuthenticationValidatorConstants.groupDoesNotExist;
+          return FirebaseExceptionConstants.groupDoesNotExist;
         }
 
         final data = groupSnapshot.data();
 
-        final authorId = data?['author_id'];
+        final authorId = data?[GroupModelFieldConstants.authorId];
 
-        final memberIds = List<String>.from((data?['user_ids'] as List?) ?? []);
+        final memberIds = List<String>.from(
+          (data?[GroupModelFieldConstants.userIds] as List?) ?? [],
+        );
 
         if (authorId != uid) {
-          return AuthenticationValidatorConstants.groupNonOwnerDeleteMessage;
+          return FirebaseExceptionConstants.groupNonOwnerDeleteMessage;
         }
 
         for (String memberId in memberIds) {
@@ -268,16 +281,16 @@ class GroupService {
               .collection(_usersCollection)
               .doc(memberId);
           transaction.update(userReference, {
-            'group_ids': FieldValue.arrayRemove([groupId]),
+            UserModelFieldConstants.groupIds: FieldValue.arrayRemove([groupId]),
           });
         }
 
         transaction.delete(groupReference);
 
-        return AuthenticationValidatorConstants.groupDeleteSuccessMessage;
+        return FirebaseExceptionConstants.groupDeleteSuccessMessage;
       });
     } catch (_) {
-      return AuthenticationValidatorConstants.groupDeleteFailedMessage;
+      return FirebaseExceptionConstants.groupDeleteFailedMessage;
     }
   }
 
@@ -290,7 +303,7 @@ class GroupService {
 
     return _database
         .collection(_groupsCollection)
-        .where('user_ids', arrayContains: uid)
+        .where(GroupModelFieldConstants.userIds, arrayContains: uid)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
@@ -339,14 +352,20 @@ class GroupService {
     }
 
     switch (sortBy) {
-      case GroupSortOption.popular:
+      case GroupSortOption.newest:
+        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case GroupSortOption.oldest:
+        filtered.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case GroupSortOption.memberCount:
         filtered.sort((a, b) => b.userIds.length.compareTo(a.userIds.length));
+        break;
+      case GroupSortOption.mostActive:
+        filtered.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
         break;
       case GroupSortOption.alphabetical:
         filtered.sort((a, b) => a.nameLowercase.compareTo(b.nameLowercase));
-        break;
-      case GroupSortOption.newest:
-        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
     }
 
@@ -358,34 +377,37 @@ class GroupService {
       final uid = currentUid;
 
       if (uid == null) {
-        return AuthenticationValidatorConstants.userNotLoggedInMessage;
+        return FirebaseExceptionConstants.userNotLoggedInMessage;
       }
 
       if (!group.adminIds.contains(uid) && group.authorId != uid) {
-        return AuthenticationValidatorConstants.groupUpdateNotAuthorMessage;
+        return FirebaseExceptionConstants.groupUpdateNotAuthorMessage;
       }
 
       final Map<String, dynamic> updateData = group.toJson();
 
-      updateData.remove('user_ids');
-      updateData.remove('admin_ids');
-      updateData.remove('editor_user_ids');
-      updateData.remove('pending_user_request_ids');
-      updateData.remove('test_ids');
-      updateData.remove('flashcard_ids');
-      updateData.remove('match_game_ids');
+      updateData.remove(GroupModelFieldConstants.userIds);
+      updateData.remove(GroupModelFieldConstants.adminIds);
+      updateData.remove(GroupModelFieldConstants.editorUserIds);
+      updateData.remove(GroupModelFieldConstants.pendingUserRequestIds);
+      updateData.remove(GroupModelFieldConstants.testIds);
+      updateData.remove(GroupModelFieldConstants.flashcardIds);
+      updateData.remove(GroupModelFieldConstants.matchGameIds);
 
-      updateData['updated_at'] = FieldValue.serverTimestamp();
-      updateData['name_lowercase'] = group.name.trim().toLowerCase();
+      updateData[GroupModelFieldConstants.updatedAt] =
+          FieldValue.serverTimestamp();
+      updateData[GroupModelFieldConstants.nameLowercase] = group.name
+          .trim()
+          .toLowerCase();
 
       await _database
           .collection(_groupsCollection)
           .doc(group.id)
           .update(updateData);
 
-      return AuthenticationValidatorConstants.groupUpdateSuccessMessage;
+      return FirebaseExceptionConstants.groupUpdateSuccessMessage;
     } catch (_) {
-      return AuthenticationValidatorConstants.groupUpdateFailedMessage;
+      return FirebaseExceptionConstants.groupUpdateFailedMessage;
     }
   }
 }
