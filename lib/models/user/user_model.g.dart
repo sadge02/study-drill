@@ -6,109 +6,96 @@ part of 'user_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-UserTestResult _$UserTestResultFromJson(Map<String, dynamic> json) =>
-    UserTestResult(
-      repetitions: (json['repetitions'] as num?)?.toInt() ?? 0,
-      correct: (json['correct'] as num?)?.toInt() ?? 0,
-      incorrect: (json['incorrect'] as num?)?.toInt() ?? 0,
+UserStatisticsEntry _$UserStatisticsEntryFromJson(Map<String, dynamic> json) =>
+    UserStatisticsEntry(
+      title: json['test_name'] as String,
+      activityType: $enumDecode(_$AttemtTypeEnumMap, json['activity_type']),
+      correct: (json['correct'] as num).toInt(),
+      incorrect: (json['incorrect'] as num).toInt(),
+      completedAt: DateTime.parse(json['completed_at'] as String),
     );
 
-Map<String, dynamic> _$UserTestResultToJson(UserTestResult instance) =>
-    <String, dynamic>{
-      'repetitions': instance.repetitions,
-      'correct': instance.correct,
-      'incorrect': instance.incorrect,
-    };
-
-UserTests _$UserTestsFromJson(Map<String, dynamic> json) => UserTests(
-  userTests:
-      (json['user_tests'] as Map<String, dynamic>?)?.map(
-        (k, e) =>
-            MapEntry(k, UserTestResult.fromJson(e as Map<String, dynamic>)),
-      ) ??
-      const {},
-);
-
-Map<String, dynamic> _$UserTestsToJson(UserTests instance) => <String, dynamic>{
-  'user_tests': instance.userTests,
-};
-
-UserPrivacySettings _$UserPrivacySettingsFromJson(Map<String, dynamic> json) =>
-    UserPrivacySettings(
-      email:
-          $enumDecodeNullable(_$UserVisibilityEnumMap, json['email']) ??
-          UserVisibility.private,
-      statistics:
-          $enumDecodeNullable(_$UserVisibilityEnumMap, json['statistics']) ??
-          UserVisibility.public,
-      groups:
-          $enumDecodeNullable(_$UserVisibilityEnumMap, json['group']) ??
-          UserVisibility.public,
-      tests:
-          $enumDecodeNullable(_$UserVisibilityEnumMap, json['tests']) ??
-          UserVisibility.public,
-    );
-
-Map<String, dynamic> _$UserPrivacySettingsToJson(
-  UserPrivacySettings instance,
+Map<String, dynamic> _$UserStatisticsEntryToJson(
+  UserStatisticsEntry instance,
 ) => <String, dynamic>{
-  'email': _$UserVisibilityEnumMap[instance.email]!,
-  'statistics': _$UserVisibilityEnumMap[instance.statistics]!,
-  'group': _$UserVisibilityEnumMap[instance.groups]!,
-  'tests': _$UserVisibilityEnumMap[instance.tests]!,
+  'test_name': instance.title,
+  'activity_type': _$AttemtTypeEnumMap[instance.activityType]!,
+  'correct': instance.correct,
+  'incorrect': instance.incorrect,
+  'completed_at': instance.completedAt.toIso8601String(),
 };
 
-const _$UserVisibilityEnumMap = {
-  UserVisibility.public: 'public',
-  UserVisibility.private: 'private',
+const _$AttemtTypeEnumMap = {
+  AttemtType.test: 'test',
+  AttemtType.flashcard: 'flashcard',
+  AttemtType.connect: 'connect',
 };
 
-UserSettings _$UserSettingsFromJson(Map<String, dynamic> json) => UserSettings(
-  getInAppNotifications: json['get_notifications'] as bool? ?? true,
-  getPushNotifications: json['get_push_notifications'] as bool? ?? true,
+UserRequest _$UserRequestFromJson(Map<String, dynamic> json) => UserRequest(
+  id: json['id'] as String,
+  requestType: $enumDecode(_$RequestTypeEnumMap, json['request_type']),
+  fromUserId: json['from_user_id'] as String,
+  toUserId: json['to_user_id'] as String,
+  groupId: json['group_id'] as String?,
+  status:
+      $enumDecodeNullable(_$RequestStatusEnumMap, json['status']) ??
+      RequestStatus.pending,
+  createdAt: DateTime.parse(json['request_created_at'] as String),
 );
 
-Map<String, dynamic> _$UserSettingsToJson(UserSettings instance) =>
+Map<String, dynamic> _$UserRequestToJson(UserRequest instance) =>
     <String, dynamic>{
-      'get_notifications': instance.getInAppNotifications,
-      'get_push_notifications': instance.getPushNotifications,
+      'id': instance.id,
+      'request_type': _$RequestTypeEnumMap[instance.requestType]!,
+      'from_user_id': instance.fromUserId,
+      'to_user_id': instance.toUserId,
+      'group_id': instance.groupId,
+      'status': _$RequestStatusEnumMap[instance.status]!,
+      'request_created_at': instance.createdAt.toIso8601String(),
     };
+
+const _$RequestTypeEnumMap = {
+  RequestType.friendInvite: 'friend',
+  RequestType.groupInvite: 'group_invite',
+  RequestType.groupJoinRequest: 'group_join',
+};
+
+const _$RequestStatusEnumMap = {
+  RequestStatus.pending: 'pending',
+  RequestStatus.accepted: 'accepted',
+  RequestStatus.declined: 'declined',
+};
 
 UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
   id: json['id'] as String,
   email: json['email'] as String,
   username: json['username'] as String,
-  usernameLowercase: json['username_lowercase'] as String,
-  summary: json['summary'] as String,
-  profilePic: json['profile_pic'] as String,
+  description: json['summary'] as String? ?? '',
+  profilePic: json['profile_pic'] as String? ?? '',
   createdAt: DateTime.parse(json['created_at'] as String),
   updatedAt: DateTime.parse(json['updated_at'] as String),
-  statistics: json['statistics'] == null
-      ? null
-      : UserTests.fromJson(json['statistics'] as Map<String, dynamic>),
-  privacySettings: json['privacy_settings'] == null
-      ? null
-      : UserPrivacySettings.fromJson(
-          json['privacy_settings'] as Map<String, dynamic>,
+  statistics:
+      (json['statistics'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(
+          k,
+          (e as List<dynamic>)
+              .map(
+                (e) => UserStatisticsEntry.fromJson(e as Map<String, dynamic>),
+              )
+              .toList(),
         ),
-  settings: json['settings'] == null
-      ? null
-      : UserSettings.fromJson(json['settings'] as Map<String, dynamic>),
-  groupIds: (json['group_ids'] as List<dynamic>)
-      .map((e) => e as String)
-      .toList(),
+      ) ??
+      const {},
+  requests:
+      (json['requests'] as List<dynamic>?)
+          ?.map((e) => UserRequest.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  groupIds:
+      (json['group_ids'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
   friendIds:
       (json['friend_ids'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ??
-      const [],
-  pendingFriendRequestIds:
-      (json['pending_friend_request_ids'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ??
-      const [],
-  sentFriendRequestIds:
-      (json['sent_friend_request_ids'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
       const [],
@@ -118,14 +105,14 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'id': instance.id,
   'email': instance.email,
   'username': instance.username,
-  'username_lowercase': instance.usernameLowercase,
-  'summary': instance.summary,
+  'summary': instance.description,
   'profile_pic': instance.profilePic,
   'created_at': instance.createdAt.toIso8601String(),
   'updated_at': instance.updatedAt.toIso8601String(),
-  'statistics': instance.statistics.toJson(),
-  'privacy_settings': instance.privacySettings.toJson(),
-  'settings': instance.settings.toJson(),
+  'statistics': instance.statistics.map(
+    (k, e) => MapEntry(k, e.map((e) => e.toJson()).toList()),
+  ),
+  'requests': instance.requests.map((e) => e.toJson()).toList(),
   'group_ids': instance.groupIds,
   'friend_ids': instance.friendIds,
   'pending_friend_request_ids': instance.pendingFriendRequestIds,

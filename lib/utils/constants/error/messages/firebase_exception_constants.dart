@@ -121,12 +121,12 @@ class FirebaseExceptionConstants {
   // Error message when provided password is incorrect.
   static const String passwordWrongMessage = 'The password is incorrect.';
 
-  // Validation error when password confirmation does not match.
-  static const String passwordMismatchMessage = 'Passwords do not match.';
-
   // Error message when password is too weak for security requirements.
   static const String passwordWeakMessage =
       'The provided password is too weak.';
+
+  static const String passwordMismatchMessage =
+      'The new password and confirmation do not match.';
 
   /// GROUP MESSAGES ///
 
@@ -210,4 +210,54 @@ class FirebaseExceptionConstants {
 
   // Firebase exception code for network request failure.
   static const String networkRequestFailedException = 'network-request-failed';
+
+  // Pending request
+  static const String userNotInPendingListMessage =
+      'This user does not have a pending join request.';
+
+  // Approve
+  static const String groupJoinRequestApprovedMessage =
+      'Join request approved. The user has been added to the group.';
+  static const String groupJoinRequestApprovalFailedMessage =
+      'Failed to approve join request. Please try again.';
+
+  // Reject
+  static const String groupJoinRequestRejectedMessage =
+      'Join request rejected.';
+  static const String groupJoinRequestRejectionFailedMessage =
+      'Failed to reject join request. Please try again.';
+
+  // Kick
+  static const String groupCannotKickOwnerMessage =
+      'The group owner cannot be removed from the group.';
+  static const String groupKickMemberSuccessMessage =
+      'The member has been removed from the group.';
+  static const String groupKickMemberFailedMessage =
+      'Failed to remove member. Please try again.';
+
+  // Role management
+  static const String groupOnlyAuthorCanManageAdminsMessage =
+      'Only the group owner can promote or demote admins.';
+  static const String groupRoleChangeFailedMessage =
+      'Failed to update member role. Please try again.';
+  static const String groupUserNotAMemberMessage =
+      'The user is not a member of this group.';
+
+  /// USER SERVICE MESSAGES ///
+
+  static const String userUpdateFailedMessage =
+      'Failed to update user profile. Please try again.';
+
+  static const String userDeleteFailedMessage =
+      'Failed to delete user account. Please try again.';
+
+  static const String userAlreadyFriendsMessage = 'You are already friends.';
+
+  static const String userFriendRequestFailedMessage =
+      'Failed to send friend request. Please try again.';
+
+  static const String userNotFriendsMessage = 'You are not friends.';
+
+  static const String userRemoveFriendFailedMessage =
+      'Failed to remove friend. Please try again.';
 }

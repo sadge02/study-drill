@@ -8,25 +8,38 @@ part of 'group_model.dart';
 
 GroupSettings _$GroupSettingsFromJson(Map<String, dynamic> json) =>
     GroupSettings(
-      autoAddAsEditor: json['auto_add_as_editor'] as bool? ?? false,
-      notifyOnNewContent: json['notify_on_new_content'] as bool? ?? true,
-      requiresApproval: json['requires_approval'] as bool? ?? false,
+      autoAddAsEditor: json['auto_add_as_editor'] as bool? ?? true,
+      requiresJoinApproval: json['requires_join_approval'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$GroupSettingsToJson(GroupSettings instance) =>
     <String, dynamic>{
       'auto_add_as_editor': instance.autoAddAsEditor,
-      'notify_on_new_content': instance.notifyOnNewContent,
-      'requires_approval': instance.requiresApproval,
+      'requires_join_approval': instance.requiresJoinApproval,
+    };
+
+GroupJoinRequest _$GroupJoinRequestFromJson(Map<String, dynamic> json) =>
+    GroupJoinRequest(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+
+Map<String, dynamic> _$GroupJoinRequestToJson(GroupJoinRequest instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'user_id': instance.userId,
+      'created_at': instance.createdAt.toIso8601String(),
     };
 
 GroupModel _$GroupModelFromJson(Map<String, dynamic> json) => GroupModel(
   id: json['id'] as String,
-  name: json['name'] as String,
-  nameLowercase: json['name_lowercase'] as String,
-  summary: json['summary'] as String,
-  profilePic: json['profile_pic'] as String,
   authorId: json['author_id'] as String,
+  createdAt: DateTime.parse(json['created_at'] as String),
+  updatedAt: DateTime.parse(json['updated_at'] as String),
+  title: json['title'] as String,
+  description: json['description'] as String? ?? '',
+  profilePic: json['profile_pic'] as String? ?? '',
   visibility: $enumDecode(_$GroupVisibilityEnumMap, json['visibility']),
   settings: json['settings'] == null
       ? null
@@ -34,21 +47,16 @@ GroupModel _$GroupModelFromJson(Map<String, dynamic> json) => GroupModel(
   tags:
       (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
-  userIds:
-      (json['user_ids'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-      const [],
-  editorUserIds:
-      (json['editor_user_ids'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList() ??
-      const [],
   adminIds:
       (json['admin_ids'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
-  pendingUserRequestIds:
-      (json['pending_user_ids'] as List<dynamic>?)
+  creatorIds:
+      (json['creator_ids'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
+      const [],
+  userIds:
+      (json['user_ids'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
   testIds:
       (json['test_ids'] as List<dynamic>?)?.map((e) => e as String).toList() ??
@@ -58,38 +66,41 @@ GroupModel _$GroupModelFromJson(Map<String, dynamic> json) => GroupModel(
           ?.map((e) => e as String)
           .toList() ??
       const [],
-  matchGameIds:
-      (json['match_game_ids'] as List<dynamic>?)
+  connectIds:
+      (json['connect_ids'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
       const [],
-  createdAt: DateTime.parse(json['created_at'] as String),
-  updatedAt: DateTime.parse(json['updated_at'] as String),
+  joinRequests:
+      (json['join_requests'] as List<dynamic>?)
+          ?.map((e) => GroupJoinRequest.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$GroupModelToJson(GroupModel instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'name': instance.name,
-      'name_lowercase': instance.nameLowercase,
-      'summary': instance.summary,
-      'profile_pic': instance.profilePic,
       'author_id': instance.authorId,
+      'created_at': instance.createdAt.toIso8601String(),
+      'updated_at': instance.updatedAt.toIso8601String(),
+      'title': instance.title,
+      'description': instance.description,
+      'profile_pic': instance.profilePic,
       'visibility': _$GroupVisibilityEnumMap[instance.visibility]!,
       'settings': instance.settings.toJson(),
       'tags': instance.tags,
-      'user_ids': instance.userIds,
-      'editor_user_ids': instance.editorUserIds,
-      'pending_user_ids': instance.pendingUserRequestIds,
       'admin_ids': instance.adminIds,
+      'creator_ids': instance.creatorIds,
+      'user_ids': instance.userIds,
       'test_ids': instance.testIds,
       'flashcard_ids': instance.flashcardIds,
-      'match_game_ids': instance.matchGameIds,
-      'created_at': instance.createdAt.toIso8601String(),
-      'updated_at': instance.updatedAt.toIso8601String(),
+      'connect_ids': instance.connectIds,
+      'join_requests': instance.joinRequests.map((e) => e.toJson()).toList(),
     };
 
 const _$GroupVisibilityEnumMap = {
   GroupVisibility.public: 'public',
   GroupVisibility.private: 'private',
+  GroupVisibility.friends: 'friends',
 };

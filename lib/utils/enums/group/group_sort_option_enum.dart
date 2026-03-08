@@ -1,20 +1,25 @@
 /// Enum for group sorting options.
 ///
-/// Defines the different ways group can be sorted in the application.
-/// Users can choose how to organize and view group based on their preferences.
+/// Defines the different ways groups can be sorted in the application.
 enum GroupSortOption {
-  /// Sort group by creation date with newest group first.
+  /// Sort groups by creation date with newest first.
   newest,
 
-  /// Sort group by creation date with oldest group first.
+  /// Sort groups by creation date with oldest first.
   oldest,
 
-  /// Sort group by member count from highest to lowest.
+  /// Sort groups by last update date with most recently updated first.
+  recentlyUpdated,
+
+  /// Sort groups by last update date with least recently updated first.
+  leastRecentlyUpdated,
+
+  /// Sort groups by member count from highest to lowest.
   memberCount,
 
-  /// Sort group by recent activity or engagement.
-  mostActive,
+  /// Sort groups by total content count (tests + flashcards + connects).
+  mostContent,
 
-  /// Sort group alphabetically by name (A-Z).
+  /// Sort groups alphabetically by title (A-Z).
   alphabetical,
 }

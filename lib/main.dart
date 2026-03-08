@@ -1,8 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:study_drill/screens/error/initialization_error_screen.dart';
 import 'package:study_drill/utils/constants/core/general_constants.dart';
-import 'package:study_drill/widgets/wrapper/authentication/authentication_gate.dart';
 
 import 'config/firebase_options.dart';
 
@@ -21,7 +19,6 @@ Future<void> initializeApp() async {
     runApp(const StudyDrillApp(onRestart: initializeApp));
   } catch (exception) {
     debugPrint('Firebase initialization failed: $exception');
-    runApp(const InitializationErrorScreen(onRestart: initializeApp));
   }
 }
 
@@ -39,7 +36,7 @@ class StudyDrillApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: AuthenticationGate(onRestart: onRestart),
+      home: null,
     );
   }
 }
