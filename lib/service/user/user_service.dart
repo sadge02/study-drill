@@ -21,15 +21,6 @@ class UserService {
   CollectionReference<Map<String, dynamic>> get _groupCollection =>
       _database.collection(DatabaseConstants.groupsCollection);
 
-  CollectionReference<Map<String, dynamic>> get _testCollection =>
-      _database.collection(DatabaseConstants.testsCollection);
-
-  CollectionReference<Map<String, dynamic>> get _flashcardCollection =>
-      _database.collection(DatabaseConstants.flashcardsCollection);
-
-  CollectionReference<Map<String, dynamic>> get _connectCollection =>
-      _database.collection(DatabaseConstants.connectsCollection);
-
   /// --------------------------------------------------------------------------
   /// READ
   /// --------------------------------------------------------------------------
@@ -280,6 +271,257 @@ class UserService {
       return null;
     } catch (_) {
       return FirebaseExceptionConstants.userRemoveFriendFailedMessage;
+    }
+  }
+
+  /// --------------------------------------------------------------------------
+  /// REQUEST MANAGEMENT
+  /// --------------------------------------------------------------------------
+
+  /// Sends a friend request from [fromUserId] to [toUserId].
+  /// The request is stored on both users' requests arrays.
+  Future<String?> sendFriendRequest(String fromUserId, String toUserId) async {
+    try {
+      final sender = await getUserById(fromUserId);
+      if (sender == null) {
+        return FirebaseExceptionConstants.userNotFoundMessage;
+      }
+
+      if (sender.friendIds.contains(toUserId)) {
+        return FirebaseExceptionConstants.userAlreadyFriendsMessage;
+      }
+
+      final alreadySent = sender.requests.any(
+        (request) =>
+            request.requestType == RequestType.friendInvite &&
+            request.toUserId == toUserId &&
+            request.status == RequestStatus.pending,
+      );
+      if (alreadySent) {
+        return FirebaseExceptionConstants.userAlreadyRequestedMessage;
+      }
+
+      final request = UserRequest(
+        id: _database.collection('_').doc().id,
+        requestType: RequestType.friendInvite,
+        fromUserId: fromUserId,
+        toUserId: toUserId,
+        createdAt: DateTime.now(),
+      );
+
+      final batch = _database.batch();
+
+      batch.update(_userCollection.doc(fromUserId), {
+        UserModelFieldConstants.requests: FieldValue.arrayUnion([
+          request.toJson(),
+        ]),
+      });
+
+      batch.update(_userCollection.doc(toUserId), {
+        UserModelFieldConstants.requests: FieldValue.arrayUnion([
+          request.toJson(),
+        ]),
+      });
+
+      await batch.commit();
+      return null;
+    } catch (_) {
+      return FirebaseExceptionConstants.userFriendRequestFailedMessage;
+    }
+  }
+
+  /// Sends a group invite from [fromUserId] to [toUserId] for [groupId].
+  /// The request is stored on both users' requests arrays.
+  Future<String?> sendGroupInvite(
+    String fromUserId,
+    String toUserId,
+    String groupId,
+  ) async {
+    try {
+      final receiver = await getUserById(toUserId);
+      if (receiver == null) {
+        return FirebaseExceptionConstants.userNotFoundMessage;
+      }
+
+      if (receiver.groupIds.contains(groupId)) {
+        return FirebaseExceptionConstants.userAlreadyAMemberMessage;
+      }
+
+      final alreadySent = receiver.requests.any(
+        (request) =>
+            request.requestType == RequestType.groupInvite &&
+            request.groupId == groupId &&
+            request.fromUserId == fromUserId &&
+            request.status == RequestStatus.pending,
+      );
+      if (alreadySent) {
+        return FirebaseExceptionConstants.userAlreadyRequestedMessage;
+      }
+
+      final request = UserRequest(
+        id: _database.collection('_').doc().id,
+        requestType: RequestType.groupInvite,
+        fromUserId: fromUserId,
+        toUserId: toUserId,
+        groupId: groupId,
+        createdAt: DateTime.now(),
+      );
+
+      final batch = _database.batch();
+
+      batch.update(_userCollection.doc(fromUserId), {
+        UserModelFieldConstants.requests: FieldValue.arrayUnion([
+          request.toJson(),
+        ]),
+      });
+
+      batch.update(_userCollection.doc(toUserId), {
+        UserModelFieldConstants.requests: FieldValue.arrayUnion([
+          request.toJson(),
+        ]),
+      });
+
+      await batch.commit();
+      return null;
+    } catch (_) {
+      return FirebaseExceptionConstants.unexpectedErrorMessage;
+    }
+  }
+
+  /// Accepts a pending request by its [requestId].
+  /// Updates the status to accepted on both users, then performs the
+  /// appropriate side effect (add friend or add to group).
+  Future<String?> acceptRequest(String userId, String requestId) async {
+    try {
+      final user = await getUserById(userId);
+      if (user == null) {
+        return FirebaseExceptionConstants.userNotFoundMessage;
+      }
+
+      final request = user.requests.where((r) => r.id == requestId).firstOrNull;
+      if (request == null || request.status != RequestStatus.pending) {
+        return FirebaseExceptionConstants.userNotInPendingListMessage;
+      }
+
+      final otherUserId = request.fromUserId == userId
+          ? request.toUserId
+          : request.fromUserId;
+
+      final otherUser = await getUserById(otherUserId);
+      if (otherUser == null) {
+        return FirebaseExceptionConstants.userNotFoundMessage;
+      }
+
+      final otherRequest = otherUser.requests
+          .where((request) => request.id == requestId)
+          .firstOrNull;
+
+      final batch = _database.batch();
+
+      batch.update(_userCollection.doc(userId), {
+        UserModelFieldConstants.requests: FieldValue.arrayRemove([
+          request.toJson(),
+        ]),
+      });
+      batch.update(_userCollection.doc(userId), {
+        UserModelFieldConstants.requests: FieldValue.arrayUnion([
+          request.copyWith(status: RequestStatus.accepted).toJson(),
+        ]),
+      });
+
+      if (otherRequest != null) {
+        batch.update(_userCollection.doc(otherUserId), {
+          UserModelFieldConstants.requests: FieldValue.arrayRemove([
+            otherRequest.toJson(),
+          ]),
+        });
+        batch.update(_userCollection.doc(otherUserId), {
+          UserModelFieldConstants.requests: FieldValue.arrayUnion([
+            otherRequest.copyWith(status: RequestStatus.accepted).toJson(),
+          ]),
+        });
+      }
+
+      await batch.commit();
+
+      if (request.requestType == RequestType.friendInvite) {
+        await addFriend(request.fromUserId, request.toUserId);
+      } else if (request.requestType == RequestType.groupInvite &&
+          request.groupId != null) {
+        await _groupCollection.doc(request.groupId).update({
+          GroupModelFieldConstants.userIds: FieldValue.arrayUnion([
+            request.toUserId,
+          ]),
+          GroupModelFieldConstants.updatedAt: DateTime.now().toIso8601String(),
+        });
+        await _userCollection.doc(request.toUserId).update({
+          UserModelFieldConstants.groupIds: FieldValue.arrayUnion([
+            request.groupId,
+          ]),
+        });
+      }
+
+      return null;
+    } catch (_) {
+      return FirebaseExceptionConstants.unexpectedErrorMessage;
+    }
+  }
+
+  /// Declines a pending request by its [requestId].
+  /// Updates the status to declined on both users.
+  Future<String?> declineRequest(String userId, String requestId) async {
+    try {
+      final user = await getUserById(userId);
+      if (user == null) {
+        return FirebaseExceptionConstants.userNotFoundMessage;
+      }
+
+      final request = user.requests.where((r) => r.id == requestId).firstOrNull;
+      if (request == null || request.status != RequestStatus.pending) {
+        return FirebaseExceptionConstants.userNotInPendingListMessage;
+      }
+
+      final otherUserId = request.fromUserId == userId
+          ? request.toUserId
+          : request.fromUserId;
+
+      final otherUser = await getUserById(otherUserId);
+
+      final batch = _database.batch();
+
+      batch.update(_userCollection.doc(userId), {
+        UserModelFieldConstants.requests: FieldValue.arrayRemove([
+          request.toJson(),
+        ]),
+      });
+      batch.update(_userCollection.doc(userId), {
+        UserModelFieldConstants.requests: FieldValue.arrayUnion([
+          request.copyWith(status: RequestStatus.declined).toJson(),
+        ]),
+      });
+
+      if (otherUser != null) {
+        final otherRequest = otherUser.requests
+            .where((request) => request.id == requestId)
+            .firstOrNull;
+        if (otherRequest != null) {
+          batch.update(_userCollection.doc(otherUserId), {
+            UserModelFieldConstants.requests: FieldValue.arrayRemove([
+              otherRequest.toJson(),
+            ]),
+          });
+          batch.update(_userCollection.doc(otherUserId), {
+            UserModelFieldConstants.requests: FieldValue.arrayUnion([
+              otherRequest.copyWith(status: RequestStatus.declined).toJson(),
+            ]),
+          });
+        }
+      }
+
+      await batch.commit();
+      return null;
+    } catch (_) {
+      return FirebaseExceptionConstants.unexpectedErrorMessage;
     }
   }
 
