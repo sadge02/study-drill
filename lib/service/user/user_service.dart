@@ -7,6 +7,7 @@ import '../../utils/constants/collections/database_constants.dart';
 import '../../utils/constants/error/messages/firebase_exception_constants.dart';
 import '../../utils/constants/models/group/group_model_field_constants.dart';
 import '../../utils/constants/models/user/user_model_field_constants.dart';
+import '../../utils/enums/user/user_sort_option_enum.dart';
 
 class UserService {
   final FirebaseFirestore _database = FirebaseFirestore.instance;
@@ -192,6 +193,63 @@ class UserService {
       }
       return getUsersByIds(user.friendIds);
     });
+  }
+
+  /// --------------------------------------------------------------------------
+  /// FILTERING & SORTING
+  /// --------------------------------------------------------------------------
+
+  /// Fetches all users and applies client-side filters and sorting.
+  Future<List<UserModel>> getFilteredUsers({
+    String? usernameStartsWith,
+    UserSortOption sortOption = UserSortOption.newest,
+  }) async {
+    List<UserModel> users = await getAllUsers();
+    users = _filterByUsername(users, usernameStartsWith);
+    users = _sortUsers(users, sortOption);
+    return users;
+  }
+
+  /// Returns a real-time stream of all users with filters and sorting.
+  Stream<List<UserModel>> streamFilteredUsers({
+    String? usernameStartsWith,
+    UserSortOption sortOption = UserSortOption.newest,
+  }) {
+    return streamAllUsers().map((users) {
+      List<UserModel> result = users;
+      result = _filterByUsername(result, usernameStartsWith);
+      result = _sortUsers(result, sortOption);
+      return result;
+    });
+  }
+
+  /// Filters users whose username starts with [prefix].
+  List<UserModel> _filterByUsername(List<UserModel> users, String? prefix) {
+    if (prefix == null || prefix.isEmpty) return users;
+    final lowerPrefix = prefix.toLowerCase();
+    return users
+        .where((u) => u.username.toLowerCase().startsWith(lowerPrefix))
+        .toList();
+  }
+
+  /// Sorts a list of users according to the given [sortOption].
+  List<UserModel> _sortUsers(List<UserModel> users, UserSortOption sortOption) {
+    switch (sortOption) {
+      case UserSortOption.newest:
+        users.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case UserSortOption.oldest:
+        users.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      case UserSortOption.alphabetical:
+        users.sort(
+          (a, b) =>
+              a.username.toLowerCase().compareTo(b.username.toLowerCase()),
+        );
+      case UserSortOption.mostGroups:
+        users.sort((a, b) => b.groupIds.length.compareTo(a.groupIds.length));
+      case UserSortOption.mostFriends:
+        users.sort((a, b) => b.friendIds.length.compareTo(a.friendIds.length));
+    }
+    return users;
   }
 
   /// --------------------------------------------------------------------------

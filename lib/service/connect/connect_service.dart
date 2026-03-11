@@ -22,7 +22,9 @@ class ConnectService {
   /// group.
   Future<void> createConnect(ConnectModel connect) async {
     await _connectCollection.doc(connect.id).set(connect.toJson());
-    await _groupService.addContentId(connect.groupId, connectId: connect.id);
+    if (connect.groupId.isNotEmpty) {
+      await _groupService.addContentId(connect.groupId, connectId: connect.id);
+    }
   }
 
   /// --------------------------------------------------------------------------
@@ -99,7 +101,7 @@ class ConnectService {
     final connect = await getConnectById(connectId);
     await _connectCollection.doc(connectId).delete();
 
-    if (connect != null) {
+    if (connect != null && connect.groupId.isNotEmpty) {
       await _groupService.removeContentId(
         connect.groupId,
         connectId: connect.id,

@@ -22,10 +22,12 @@ class FlashcardService {
   /// group.
   Future<void> createFlashcardSet(FlashcardSet flashcardSet) async {
     await _flashcardCollection.doc(flashcardSet.id).set(flashcardSet.toJson());
-    await _groupService.addContentId(
-      flashcardSet.groupId,
-      flashcardId: flashcardSet.id,
-    );
+    if (flashcardSet.groupId.isNotEmpty) {
+      await _groupService.addContentId(
+        flashcardSet.groupId,
+        flashcardId: flashcardSet.id,
+      );
+    }
   }
 
   /// --------------------------------------------------------------------------
@@ -102,7 +104,7 @@ class FlashcardService {
     final flashcardSet = await getFlashcardSetById(flashcardSetId);
     await _flashcardCollection.doc(flashcardSetId).delete();
 
-    if (flashcardSet != null) {
+    if (flashcardSet != null && flashcardSet.groupId.isNotEmpty) {
       await _groupService.removeContentId(
         flashcardSet.groupId,
         flashcardId: flashcardSet.id,

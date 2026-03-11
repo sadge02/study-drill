@@ -155,7 +155,7 @@ class GeneralConstants {
   /// SCREEN ///
 
   // Threshold width (600dp) to distinguish between mobile and desktop.
-  static const int mobileThreshold = 600;
+  static const int mobileThreshold = 1024;
 
   // Width ratio for mobile screens (0.9 = 90% of screen width).
   static const double widthRatioMobile = 0.9;

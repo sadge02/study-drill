@@ -115,6 +115,4 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'requests': instance.requests.map((e) => e.toJson()).toList(),
   'group_ids': instance.groupIds,
   'friend_ids': instance.friendIds,
-  'pending_friend_request_ids': instance.pendingFriendRequestIds,
-  'sent_friend_request_ids': instance.sentFriendRequestIds,
 };

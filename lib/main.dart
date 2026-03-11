@@ -1,5 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:study_drill/screens/authentication/authentication_login_screen.dart';
+import 'package:study_drill/screens/home/home_screen.dart';
 import 'package:study_drill/utils/constants/core/general_constants.dart';
 
 import 'config/firebase_options.dart';
@@ -11,15 +14,11 @@ void main() {
 
 Future<void> initializeApp() async {
   try {
-    debugPrint('Initializing Firebase...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    debugPrint('Firebase initialization successful');
     runApp(const StudyDrillApp(onRestart: initializeApp));
-  } catch (exception) {
-    debugPrint('Firebase initialization failed: $exception');
-  }
+  } catch (_) {}
 }
 
 class StudyDrillApp extends StatelessWidget {
@@ -36,7 +35,24 @@ class StudyDrillApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: null,
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(
+                  color: GeneralConstants.primaryColor,
+                ),
+              ),
+            );
+          }
+          if (snapshot.hasData) {
+            return const HomeScreen();
+          }
+          return const AuthenticationLoginScreen();
+        },
+      ),
     );
   }
 }
